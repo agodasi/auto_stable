@@ -85,9 +85,15 @@ class QueueManager:
                 
                 for i, img_b64 in enumerate(images_b64):
                     image = self.api_client.decode_base64_image(img_b64)
+                    
+                    # Create date-based subfolder
+                    date_folder = datetime.now().strftime("%Y-%m-%d")
+                    target_dir = os.path.join(save_dir, date_folder)
+                    os.makedirs(target_dir, exist_ok=True)
+                    
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                     savename = f"{timestamp}_{i:02d}.png"
-                    filepath = os.path.join(save_dir, savename)
+                    filepath = os.path.join(target_dir, savename)
                     image.save(filepath, "PNG")
                     
                     if "on_finish" in self.ui_callbacks:

@@ -44,9 +44,15 @@ class SettingsWindow(ctk.CTkToplevel):
         
         # Save Directory
         ctk.CTkLabel(tab, text=t("lbl_save_dir")).grid(row=1, column=0, padx=10, pady=10, sticky="w")
-        self.save_dir_entry = ctk.CTkEntry(tab, width=300)
+        
+        dir_frame = ctk.CTkFrame(tab, fg_color="transparent")
+        dir_frame.grid(row=1, column=1, padx=10, pady=10, sticky="w")
+        
+        self.save_dir_entry = ctk.CTkEntry(dir_frame, width=300)
         self.save_dir_entry.insert(0, conf.get("save_dir", ""))
-        self.save_dir_entry.grid(row=1, column=1, padx=10, pady=10, sticky="w")
+        self.save_dir_entry.pack(side="left", padx=(0, 5))
+        
+        ctk.CTkButton(dir_frame, text=t("btn_browse"), width=60, command=self.browse_save_dir).pack(side="left")
         
         # Theme
         ctk.CTkLabel(tab, text=t("lbl_theme")).grid(row=2, column=0, padx=10, pady=10, sticky="w")
@@ -273,4 +279,12 @@ class SettingsWindow(ctk.CTkToplevel):
         if current not in titles:
             self.checkpoint_option.set(titles[0])
         self.refresh_models_btn.configure(state="normal")
+
+    def browse_save_dir(self):
+        from tkinter import filedialog
+        initial_dir = self.save_dir_entry.get()
+        directory = filedialog.askdirectory(initialdir=initial_dir)
+        if directory:
+            self.save_dir_entry.delete(0, "end")
+            self.save_dir_entry.insert(0, directory)
 
