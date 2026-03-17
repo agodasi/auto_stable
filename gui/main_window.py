@@ -44,24 +44,24 @@ class MainWindow(ctk.CTk):
         header_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
         header_frame.grid_columnconfigure(0, weight=1)
         
-        title_label = ctk.CTkLabel(header_frame, text="Queue Manager", font=ctk.CTkFont(size=20, weight="bold"))
+        title_label = ctk.CTkLabel(header_frame, text="キューマネージャー", font=ctk.CTkFont(size=20, weight="bold"))
         title_label.grid(row=0, column=0, sticky="w")
         
-        settings_btn = ctk.CTkButton(header_frame, text="⚙ Settings", width=80, command=self.open_settings)
+        settings_btn = ctk.CTkButton(header_frame, text="⚙ 設定", width=80, command=self.open_settings)
         settings_btn.grid(row=0, column=1, sticky="e")
         
         # Global Settings Area
         global_frame = ctk.CTkFrame(self.left_frame)
         global_frame.grid(row=1, column=0, padx=10, pady=5, sticky="ew")
         
-        ctk.CTkLabel(global_frame, text="Global Settings", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, padx=10, pady=5, sticky="w")
+        ctk.CTkLabel(global_frame, text="全般設定", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, padx=10, pady=5, sticky="w")
         
         gp = self.config_manager.config.get("global_params", {})
         
         # Batch count
         batch_frame = ctk.CTkFrame(global_frame, fg_color="transparent")
         batch_frame.grid(row=1, column=0, padx=10, pady=5, sticky="ew")
-        ctk.CTkLabel(batch_frame, text="Batch count:").pack(side="left", padx=5)
+        ctk.CTkLabel(batch_frame, text="生成回数 (Batch count):").pack(side="left", padx=5)
         self.batch_entry = ctk.CTkEntry(batch_frame, width=60)
         self.batch_entry.insert(0, str(gp.get("batch_count", 1)))
         self.batch_entry.pack(side="left")
@@ -70,7 +70,7 @@ class MainWindow(ctk.CTk):
         freeu_frame = ctk.CTkFrame(global_frame, fg_color="transparent")
         freeu_frame.grid(row=2, column=0, padx=10, pady=5, sticky="ew")
         self.freeu_var = ctk.BooleanVar(value=gp.get("freeu_enable", False))
-        self.freeu_switch = ctk.CTkSwitch(freeu_frame, text="FreeU Enable", variable=self.freeu_var)
+        self.freeu_switch = ctk.CTkSwitch(freeu_frame, text="FreeU 有効化", variable=self.freeu_var)
         self.freeu_switch.grid(row=0, column=0, columnspan=8, sticky="w", pady=2)
         
         self.freeu_entries = {}
@@ -83,7 +83,7 @@ class MainWindow(ctk.CTk):
             self.freeu_entries[key] = entry
         
         # Queue Area (Scrollable)
-        self.queue_frame = ctk.CTkScrollableFrame(self.left_frame, label_text="Jobs Queue")
+        self.queue_frame = ctk.CTkScrollableFrame(self.left_frame, label_text="生成待ちキュー (Jobs Queue)")
         self.queue_frame.grid(row=2, column=0, padx=10, pady=10, sticky="nsew")
         
         # Queue Add Buttons
@@ -122,7 +122,7 @@ class MainWindow(ctk.CTk):
         
         header = ctk.CTkFrame(card, fg_color="transparent")
         header.pack(fill="x", padx=5, pady=2)
-        ctk.CTkLabel(header, text="Queue Item", font=ctk.CTkFont(weight="bold")).pack(side="left")
+        ctk.CTkLabel(header, text="キュー項目", font=ctk.CTkFont(weight="bold")).pack(side="left")
         
         def delete_item():
             card.destroy()
@@ -159,7 +159,7 @@ class MainWindow(ctk.CTk):
         self.right_frame.grid_columnconfigure(0, weight=1)
         
         # Preview Image Area
-        self.preview_label = ctk.CTkLabel(self.right_frame, text="Image Preview Area", fg_color="gray20", corner_radius=10)
+        self.preview_label = ctk.CTkLabel(self.right_frame, text="画像プレビュー領域", fg_color="gray20", corner_radius=10)
         self.preview_label.grid(row=0, column=0, padx=10, pady=(10, 5), sticky="nsew")
         
         # Progress Bar & Status
@@ -171,7 +171,7 @@ class MainWindow(ctk.CTk):
         self.progress_bar.set(0.0)
         self.progress_bar.grid(row=0, column=0, sticky="ew", pady=5)
         
-        self.status_label = ctk.CTkLabel(progress_frame, text="Status: Idle (0%)")
+        self.status_label = ctk.CTkLabel(progress_frame, text="状態: 待機中 (0%)")
         self.status_label.grid(row=1, column=0, sticky="w")
         
         # Save Preset Button
@@ -226,13 +226,13 @@ class MainWindow(ctk.CTk):
             asyncio.run(do_cancel())
 
     def on_gen_start(self, item):
-        self.after(0, lambda: self.status_label.configure(text=f"Status: Generating..."))
+        self.after(0, lambda: self.status_label.configure(text=f"状態: 生成中..."))
 
     def on_gen_progress(self, info):
         progress = info.get("progress", 0)
         self.after(0, lambda: [
             self.progress_bar.set(progress),
-            self.status_label.configure(text=f"Status: Generating ({int(progress*100)}%)")
+            self.status_label.configure(text=f"状態: 生成中 ({int(progress*100)}%)")
         ])
 
     def on_gen_finish(self, image, filepath):
@@ -260,14 +260,14 @@ class MainWindow(ctk.CTk):
     def on_gen_error(self, err_msg):
         from tkinter import messagebox
         self.after(0, lambda: [
-            messagebox.showerror("Error", err_msg),
+            messagebox.showerror("エラー", err_msg),
             self.on_gen_complete()
         ])
 
     def on_gen_complete(self):
         self.after(0, lambda: [
             self.generate_btn.configure(text="▶ 生成開始 (Generate)", fg_color="green", hover_color="darkgreen"),
-            self.status_label.configure(text="Status: Idle (0%)"),
+            self.status_label.configure(text="状態: 待機中 (0%)"),
             self.progress_bar.set(0.0)
         ])
 

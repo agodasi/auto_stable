@@ -61,8 +61,8 @@ class ConfigManager:
         
     def load_presets(self):
         default_presets = {
-            "situations": [{"name": "Sample Situation", "text": "1girl, outdoors, highly detailed"}],
-            "characters": [{"name": "Sample Character", "text": "masterpiece, best quality, smiling"}]
+            "situations": [{"name": "サンプルシチュエーション", "text": "1girl, outdoors, highly detailed"}],
+            "characters": [{"name": "サンプルキャラクター", "text": "masterpiece, best quality, smiling"}]
         }
         loaded = self.load_json(self.presets_file, default_presets)
         if "situations" not in loaded: loaded["situations"] = default_presets["situations"]

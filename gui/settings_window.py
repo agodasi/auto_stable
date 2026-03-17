@@ -11,20 +11,20 @@ class SettingsWindow(ctk.CTkToplevel):
         self.tabview = ctk.CTkTabview(self)
         self.tabview.pack(fill="both", expand=True, padx=10, pady=10)
         
-        self.tabview.add("System Settings")
-        self.tabview.add("Base Generation")
-        self.tabview.add("Preset Management")
+        self.tabview.add("システム設定")
+        self.tabview.add("基本生成パラメータ")
+        self.tabview.add("プリセット管理")
         
         self.setup_system_tab()
         self.setup_generation_tab()
         self.setup_preset_tab()
 
         # Save button for the whole settings
-        self.save_all_btn = ctk.CTkButton(self, text="Save & Close", command=self.save_and_close)
+        self.save_all_btn = ctk.CTkButton(self, text="設定を保存して閉じる", command=self.save_and_close)
         self.save_all_btn.pack(pady=10)
         
     def setup_system_tab(self):
-        tab = self.tabview.tab("System Settings")
+        tab = self.tabview.tab("システム設定")
         conf = self.config_manager.config
         
         # API URL
@@ -34,34 +34,34 @@ class SettingsWindow(ctk.CTkToplevel):
         self.api_url_entry.grid(row=0, column=1, padx=10, pady=10, sticky="w")
         
         # Save Directory
-        ctk.CTkLabel(tab, text="Save Directory:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
+        ctk.CTkLabel(tab, text="保存先ディレクトリ:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
         self.save_dir_entry = ctk.CTkEntry(tab, width=300)
         self.save_dir_entry.insert(0, conf.get("save_dir", ""))
         self.save_dir_entry.grid(row=1, column=1, padx=10, pady=10, sticky="w")
         
         # Theme
-        ctk.CTkLabel(tab, text="Theme:").grid(row=2, column=0, padx=10, pady=10, sticky="w")
+        ctk.CTkLabel(tab, text="テーマ:").grid(row=2, column=0, padx=10, pady=10, sticky="w")
         self.theme_option = ctk.CTkOptionMenu(tab, values=["System", "Light", "Dark"])
         self.theme_option.set(conf.get("theme", "Dark"))
         self.theme_option.grid(row=2, column=1, padx=10, pady=10, sticky="w")
         
     def setup_generation_tab(self):
-        tab = self.tabview.tab("Base Generation")
+        tab = self.tabview.tab("基本生成パラメータ")
         bp = self.config_manager.config.get("base_params", {})
         
         # Checkpoint
-        ctk.CTkLabel(tab, text="Checkpoint:").grid(row=0, column=0, padx=10, pady=10, sticky="w")
+        ctk.CTkLabel(tab, text="Checkpoint (モデル):").grid(row=0, column=0, padx=10, pady=10, sticky="w")
         self.checkpoint_option = ctk.CTkOptionMenu(tab, values=[bp.get("checkpoint", "None")], width=250)
         self.checkpoint_option.grid(row=0, column=1, padx=10, pady=10, sticky="w")
         
         # Negative Prompt
-        ctk.CTkLabel(tab, text="Negative Prompt:").grid(row=1, column=0, padx=10, pady=10, sticky="nw")
+        ctk.CTkLabel(tab, text="ネガティブプロンプト:").grid(row=1, column=0, padx=10, pady=10, sticky="nw")
         self.neg_prompt_entry = ctk.CTkTextbox(tab, width=400, height=80)
         self.neg_prompt_entry.insert("1.0", bp.get("negative_prompt", ""))
         self.neg_prompt_entry.grid(row=1, column=1, columnspan=2, padx=10, pady=10, sticky="w")
         
         # Steps & CFG
-        ctk.CTkLabel(tab, text="Steps:").grid(row=2, column=0, padx=10, pady=10, sticky="w")
+        ctk.CTkLabel(tab, text="Steps (ステップ数):").grid(row=2, column=0, padx=10, pady=10, sticky="w")
         self.steps_entry = ctk.CTkEntry(tab, width=80)
         self.steps_entry.insert(0, str(bp.get("steps", 20)))
         self.steps_entry.grid(row=2, column=1, padx=10, pady=10, sticky="w")
@@ -74,40 +74,40 @@ class SettingsWindow(ctk.CTkToplevel):
         # Width & Height
         size_frame = ctk.CTkFrame(tab, fg_color="transparent")
         size_frame.grid(row=4, column=0, columnspan=2, padx=10, pady=10, sticky="w")
-        ctk.CTkLabel(size_frame, text="Width:").pack(side="left")
+        ctk.CTkLabel(size_frame, text="幅 (Width):").pack(side="left")
         self.width_entry = ctk.CTkEntry(size_frame, width=80)
         self.width_entry.insert(0, str(bp.get("width", 512)))
         self.width_entry.pack(side="left", padx=(5, 20))
         
-        ctk.CTkLabel(size_frame, text="Height:").pack(side="left")
+        ctk.CTkLabel(size_frame, text="高さ (Height):").pack(side="left")
         self.height_entry = ctk.CTkEntry(size_frame, width=80)
         self.height_entry.insert(0, str(bp.get("height", 512)))
         self.height_entry.pack(side="left", padx=5)
 
     def setup_preset_tab(self):
-        tab = self.tabview.tab("Preset Management")
+        tab = self.tabview.tab("プリセット管理")
         tab.grid_columnconfigure((0, 1), weight=1)
         tab.grid_rowconfigure(0, weight=1)
         
         # Situations Column
         sit_frame = ctk.CTkFrame(tab)
         sit_frame.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
-        ctk.CTkLabel(sit_frame, text="Situations", font=ctk.CTkFont(weight="bold")).pack(pady=5)
+        ctk.CTkLabel(sit_frame, text="シチュエーション", font=ctk.CTkFont(weight="bold")).pack(pady=5)
         
         self.sit_scroll = ctk.CTkScrollableFrame(sit_frame)
         self.sit_scroll.pack(fill="both", expand=True, padx=5, pady=5)
         
-        ctk.CTkButton(sit_frame, text="+ Add Situation", command=lambda: self.add_preset_prompt("situations")).pack(pady=5)
+        ctk.CTkButton(sit_frame, text="+ シチュエーションを追加", command=lambda: self.add_preset_prompt("situations")).pack(pady=5)
         
         # Characters Column
         char_frame = ctk.CTkFrame(tab)
         char_frame.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
-        ctk.CTkLabel(char_frame, text="Characters", font=ctk.CTkFont(weight="bold")).pack(pady=5)
+        ctk.CTkLabel(char_frame, text="キャラクター", font=ctk.CTkFont(weight="bold")).pack(pady=5)
         
         self.char_scroll = ctk.CTkScrollableFrame(char_frame)
         self.char_scroll.pack(fill="both", expand=True, padx=5, pady=5)
         
-        ctk.CTkButton(char_frame, text="+ Add Character", command=lambda: self.add_preset_prompt("characters")).pack(pady=5)
+        ctk.CTkButton(char_frame, text="+ キャラクターを追加", command=lambda: self.add_preset_prompt("characters")).pack(pady=5)
         
         self.refresh_presets_display()
 
@@ -147,16 +147,16 @@ class SettingsWindow(ctk.CTkToplevel):
 
     def open_preset_editor(self, category, index, item=None):
         dialog = ctk.CTkToplevel(self)
-        dialog.title("Edit Preset" if item else "Add Preset")
+        dialog.title("プリセット編集" if item else "プリセット追加")
         dialog.geometry("400x350")
         dialog.attributes("-topmost", True)
         
-        ctk.CTkLabel(dialog, text="Name:").pack(pady=(10, 0), padx=20, anchor="w")
+        ctk.CTkLabel(dialog, text="名前:").pack(pady=(10, 0), padx=20, anchor="w")
         name_entry = ctk.CTkEntry(dialog, width=350)
         name_entry.pack(pady=5, padx=20)
         if item: name_entry.insert(0, item["name"])
         
-        ctk.CTkLabel(dialog, text="Text:").pack(pady=(10, 0), padx=20, anchor="w")
+        ctk.CTkLabel(dialog, text="テキスト:").pack(pady=(10, 0), padx=20, anchor="w")
         text_box = ctk.CTkTextbox(dialog, width=350, height=150)
         text_box.pack(pady=5, padx=20)
         if item: text_box.insert("1.0", item["text"])
@@ -171,7 +171,7 @@ class SettingsWindow(ctk.CTkToplevel):
             self.refresh_presets_display()
             dialog.destroy()
             
-        ctk.CTkButton(dialog, text="Save", command=save).pack(pady=10)
+        ctk.CTkButton(dialog, text="保存", command=save).pack(pady=10)
 
     def delete_preset_prompt(self, category, index):
         self.config_manager.presets[category].pop(index)
