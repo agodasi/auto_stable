@@ -30,11 +30,11 @@ class MainWindow(ctk.CTk):
         self.grid_rowconfigure(0, weight=1)
 
         # Left Frame
-        self.left_frame = ctk.CTkFrame(self)
+        self.left_frame = ctk.CTkFrame(self, fg_color=("#E3F2FD", "#1A2A3A"))
         self.left_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
         
         # Right Frame
-        self.right_frame = ctk.CTkFrame(self)
+        self.right_frame = ctk.CTkFrame(self, fg_color=("#E3F2FD", "#1A2A3A"))
         self.right_frame.grid(row=0, column=1, padx=(0, 10), pady=10, sticky="nsew")
         
         self.setup_left_panel()
@@ -60,7 +60,7 @@ class MainWindow(ctk.CTk):
         settings_btn.grid(row=0, column=1, sticky="e")
         
         # Global Settings Area
-        global_frame = ctk.CTkFrame(self.left_frame)
+        global_frame = ctk.CTkFrame(self.left_frame, fg_color=("#BBDEFB", "#253A4E"))
         global_frame.grid(row=1, column=0, padx=10, pady=5, sticky="ew")
         
         ctk.CTkLabel(global_frame, text=t("lbl_global_settings"), font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, padx=10, pady=5, sticky="w")
@@ -126,7 +126,7 @@ class MainWindow(ctk.CTk):
         QueueWizardDialog(self, situations, characters, on_wizard_complete)
 
     def add_queue_card(self, initial_text="", save=True):
-        card = ctk.CTkFrame(self.queue_frame)
+        card = ctk.CTkFrame(self.queue_frame, fg_color=("#BBDEFB", "#253A4E"))
         card.pack(fill="x", padx=5, pady=5)
         
         header = ctk.CTkFrame(card, fg_color="transparent")
@@ -168,7 +168,7 @@ class MainWindow(ctk.CTk):
         self.right_frame.grid_columnconfigure(0, weight=1)
         
         # Preview Image Area
-        self.preview_label = ctk.CTkLabel(self.right_frame, text=t("lbl_image_preview"), fg_color="gray20", corner_radius=10)
+        self.preview_label = ctk.CTkLabel(self.right_frame, text=t("lbl_image_preview"), fg_color=("#BBDEFB", "#102030"), corner_radius=10)
         self.preview_label.grid(row=0, column=0, padx=10, pady=(10, 5), sticky="nsew")
         
         # Progress Bar & Status
@@ -184,15 +184,19 @@ class MainWindow(ctk.CTk):
         self.status_label.grid(row=1, column=0, sticky="w")
         
         # Preset & Re-queue Buttons
-        preset_requeue_frame = ctk.CTkFrame(self.right_frame, fg_color="transparent")
-        preset_requeue_frame.grid(row=2, column=0, padx=10, pady=5, sticky="ew")
-        preset_requeue_frame.grid_columnconfigure((0, 1), weight=1)
+        self.preset_requeue_frame = ctk.CTkFrame(self.right_frame, fg_color="transparent")
+        self.preset_requeue_frame.grid(row=2, column=0, padx=10, pady=5, sticky="ew")
+        self.preset_requeue_frame.grid_columnconfigure((0, 1), weight=1)
         
-        save_preset_btn = ctk.CTkButton(preset_requeue_frame, text=t("btn_save_preset"), command=self.save_preset)
+        save_preset_btn = ctk.CTkButton(self.preset_requeue_frame, text=t("btn_save_preset"), command=self.save_preset)
         save_preset_btn.grid(row=0, column=0, padx=(0, 5), sticky="ew")
         
-        requeue_btn = ctk.CTkButton(preset_requeue_frame, text=t("btn_requeue"), command=self.requeue_current_prompt)
+        requeue_btn = ctk.CTkButton(self.preset_requeue_frame, text=t("btn_requeue"), command=self.requeue_current_prompt)
         requeue_btn.grid(row=0, column=1, padx=(5, 0), sticky="ew")
+        
+        # Apply blue-ish colors
+        save_preset_btn.configure(fg_color=("#42A5F5", "#1E88E5"), hover_color=("#2196F3", "#1976D2"))
+        requeue_btn.configure(fg_color=("#42A5F5", "#1E88E5"), hover_color=("#2196F3", "#1976D2"))
         
         # Generation Control
         self.generate_btn = ctk.CTkButton(self.right_frame, text=t("btn_generate"), fg_color="green", hover_color="darkgreen", height=50, font=ctk.CTkFont(size=16, weight="bold"), command=self.toggle_generation)

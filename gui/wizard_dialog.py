@@ -17,8 +17,10 @@ class QueueWizardDialog(ctk.CTkToplevel):
         self.selected_character = ""
         
         # Step 1 Frame
-        self.step1_frame = ctk.CTkFrame(self)
+        self.step1_frame = ctk.CTkFrame(self, fg_color=("#BBDEFB", "#253A4E"))
         self.step1_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        self.configure(fg_color=("#E3F2FD", "#1A2A3A"))
         
         ctk.CTkLabel(self.step1_frame, text=t("step1_sit"), font=ctk.CTkFont(size=16)).pack(pady=10)
         self.sit_var = ctk.StringVar(value=self.situations[0])
@@ -28,7 +30,7 @@ class QueueWizardDialog(ctk.CTkToplevel):
         ctk.CTkButton(self.step1_frame, text=t("btn_next"), command=self.go_to_step2).pack(pady=10)
         
         # Step 2 Frame
-        self.step2_frame = ctk.CTkFrame(self)
+        self.step2_frame = ctk.CTkFrame(self, fg_color=("#BBDEFB", "#253A4E"))
         
         ctk.CTkLabel(self.step2_frame, text=t("step2_char"), font=ctk.CTkFont(size=16)).pack(pady=10)
         self.char_var = ctk.StringVar(value=self.characters[0])
