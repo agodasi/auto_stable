@@ -11,6 +11,10 @@ class ConfigManager:
         self.config = self.load_config()
         self.presets = self.load_presets()
         self.queue_state = self.load_queue_state()
+        
+        # Initialize language
+        from core.i18n import set_language
+        set_language(self.config.get("language", "ja"))
 
     def load_json(self, filepath, default_data):
         if os.path.exists(filepath):
@@ -33,6 +37,7 @@ class ConfigManager:
             "api_url": "http://127.0.0.1:7860",
             "save_dir": "./outputs",
             "theme": "Dark",
+            "language": "ja",
             "base_params": {
                 "checkpoint": "",
                 "negative_prompt": "",
@@ -60,9 +65,10 @@ class ConfigManager:
         self.save_json(self.config_file, self.config)
         
     def load_presets(self):
+        from core.i18n import t
         default_presets = {
-            "situations": [{"name": "サンプルシチュエーション", "text": "1girl, outdoors, highly detailed"}],
-            "characters": [{"name": "サンプルキャラクター", "text": "masterpiece, best quality, smiling"}]
+            "situations": [{"name": t("default_sit_name"), "text": "1girl, outdoors, highly detailed"}],
+            "characters": [{"name": t("default_char_name"), "text": "masterpiece, best quality, smiling"}]
         }
         loaded = self.load_json(self.presets_file, default_presets)
         if "situations" not in loaded: loaded["situations"] = default_presets["situations"]
