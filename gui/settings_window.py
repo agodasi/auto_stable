@@ -20,9 +20,13 @@ class SettingsWindow(ctk.CTkToplevel):
         self.setup_generation_tab()
         self.setup_preset_tab()
 
-        # Save button for the whole settings
-        self.save_all_btn = ctk.CTkButton(self, text=t("btn_save_close"), command=self.save_and_close)
-        self.save_all_btn.pack(pady=10)
+        # Control Buttons
+        btn_frame = ctk.CTkFrame(self, fg_color="transparent")
+        btn_frame.pack(pady=10)
+        
+        ctk.CTkButton(btn_frame, text=t("btn_apply"), command=self.apply_settings, width=100).pack(side="left", padx=10)
+        ctk.CTkButton(btn_frame, text=t("btn_save"), command=self.save_and_close, width=100).pack(side="left", padx=10)
+        ctk.CTkButton(btn_frame, text=t("btn_close"), command=self.destroy, width=100).pack(side="left", padx=10)
         
     def setup_system_tab(self):
         tab = self.tabview.tab(t("tab_system"))
@@ -185,7 +189,7 @@ class SettingsWindow(ctk.CTkToplevel):
         self.config_manager.save_presets()
         self.refresh_presets_display()
 
-    def save_and_close(self):
+    def apply_settings(self):
         # Check if language changed
         old_lang = self.config_manager.config.get("language")
         new_lang = self.lang_option.get()
@@ -211,6 +215,8 @@ class SettingsWindow(ctk.CTkToplevel):
             from core.i18n import set_language
             set_language(new_lang)
             messagebox.showinfo(t("title_msg_restart"), t("msg_restart"))
-            
+
+    def save_and_close(self):
+        self.apply_settings()
         self.destroy()
 
