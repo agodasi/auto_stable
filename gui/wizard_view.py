@@ -74,7 +74,8 @@ class WizardView:
         self.close_dialog()
 
     def show(self):
-        self.page.dialog = self.dialog
+        if self.dialog not in self.page.overlay:
+            self.page.overlay.append(self.dialog)
         self.dialog.open = True
         self.page.update()
 

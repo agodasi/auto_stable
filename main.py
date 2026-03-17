@@ -3,7 +3,7 @@ from core.config_manager import ConfigManager
 from core.api_client import SDForgeAPIClient
 from gui.main_view import MainView
 
-def main(page: ft.Page):
+async def main(page: ft.Page):
     config_manager = ConfigManager()
     
     # Base page settings
@@ -31,4 +31,4 @@ def main(page: ft.Page):
     page.add(main_view.build())
 
 if __name__ == "__main__":
-    ft.app(target=main) # Keep ft.app for 0.22 compatibility, or change to flet.app 
+    ft.run(main)

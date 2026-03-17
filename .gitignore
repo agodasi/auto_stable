@@ -70,3 +70,6 @@ queue_state.json
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+#test files
+test_dlg.py

@@ -12,7 +12,7 @@ class MainView:
         self.queue_cards = []
         
         # UI Components
-        self.preview_image = ft.Image(src=None, fit=ft.ImageFit.CONTAIN if hasattr(ft, 'ImageFit') else "contain", expand=True, visible=False)
+        self.preview_image = ft.Image(src="", fit=ft.ImageFit.CONTAIN if hasattr(ft, 'ImageFit') else "contain", expand=True, visible=False)
         self.preview_placeholder = ft.Container(
             content=ft.Text(t("lbl_image_preview"), color="grey500"),
             alignment=ft.Alignment(0, 0),
@@ -71,7 +71,7 @@ class MainView:
             
         header = ft.Row([
             ft.Text(t("lbl_queue_item"), weight=ft.FontWeight.BOLD),
-            ft.IconButton(icon="delete", icon_color="red500", on_click=remove_card)
+            ft.IconButton(icon=ft.Icons.DELETE, icon_color="red500", on_click=remove_card)
         ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
         
         card_container = ft.Container(
@@ -88,18 +88,34 @@ class MainView:
             self.save_current_queue_state()
         self.page.update()
 
-    def toggle_generation(self, e):
+    async def toggle_generation(self, e):
         if not hasattr(self, "queue_manager") or not self.queue_manager.is_running:
-            self.start_generation()
+            await self.start_generation()
         else:
-            self.stop_generation()
+            await self.stop_generation()
 
-    def start_generation(self):
+    async def start_generation(self):
+        # 0. Check Directory
+        import os
+        save_dir = self.config_manager.config.get("save_dir", "")
+        if not save_dir or not os.path.exists(save_dir):
+            snack = ft.SnackBar(ft.Text(f"Error: Save directory not found: {save_dir}"), bgcolor="red700")
+            self.page.overlay.append(snack)
+            snack.open = True
+            self.page.update()
+            return
+
         self.btn_generate.text = t("btn_cancel")
         self.btn_generate.bgcolor = "red700"
+        
+        # 1. Lock first queue item if exists
+        if self.queue_cards:
+            self.queue_cards[0]["textfield"].read_only = True
+            
         self.page.update()
         
         self.save_current_queue_state()
+        self.save_global_params()
         
         callbacks = {
             "on_start": self.on_gen_start,
@@ -111,37 +127,28 @@ class MainView:
         
         self.queue_manager = QueueManager(self.config_manager, self.api_client, callbacks)
         
+        # Start the queue loop as an async task
         import asyncio
-        import threading
-        
-        def run_asyncio():
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(self.queue_manager.run_queue())
-            
-        threading.Thread(target=run_asyncio, daemon=True).start()
+        asyncio.create_task(self.queue_manager.run_queue())
 
-    def stop_generation(self):
-        import asyncio
+    async def stop_generation(self):
         if hasattr(self, "queue_manager"):
-            async def do_cancel():
-                await self.queue_manager.cancel()
-            asyncio.run(do_cancel())
+            await self.queue_manager.cancel()
 
     # Callbacks
-    def on_gen_start(self, item):
+    async def on_gen_start(self, item):
         self.status_text.value = t("status_generating")
         self.progress_bar.visible = True
         self.progress_bar.value = 0
         self.page.update()
 
-    def on_gen_progress(self, info):
+    async def on_gen_progress(self, info):
         progress = info.get("progress", 0)
         self.progress_bar.value = progress
         self.status_text.value = t("status_generating_pct", pct=int(progress*100))
         self.page.update()
 
-    def on_gen_finish(self, image, filepath):
+    async def on_gen_finish(self, image, filepath):
         import base64
         import io
         
@@ -149,10 +156,11 @@ class MainView:
         image.save(buffer, format="PNG")
         img_b64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
         
-        self.preview_image.src_base64 = img_b64
+        self.preview_image.src = img_b64
         self.preview_image.visible = True
         self.preview_placeholder.visible = False
         
+        # In Flet async mode, we wait a bit or just get the updated state
         self.last_generated_prompt = self.config_manager.queue_state.get("last_finished_prompt", "")
         
         if self.queue_list.controls:
@@ -163,45 +171,86 @@ class MainView:
                 
         self.page.update()
 
-    def on_gen_error(self, err_msg):
-        self.page.dialog = ft.AlertDialog(title=ft.Text(t("msg_error")), content=ft.Text(err_msg))
-        self.page.dialog.open = True
-        self.on_gen_complete()
+    async def on_gen_error(self, err_msg):
+        dlg = ft.AlertDialog(title=ft.Text(t("msg_error")), content=ft.Text(err_msg))
+        self.page.overlay.append(dlg)
+        dlg.open = True
+        await self.on_gen_complete()
         self.page.update()
 
-    def on_gen_complete(self):
+    async def on_gen_complete(self):
         self.btn_generate.text = t("btn_generate")
         self.btn_generate.bgcolor = "green700"
         self.status_text.value = t("lbl_status_idle")
         self.progress_bar.visible = False
+        
+        # Unlock or items are already removed, but just in case:
+        for card in self.queue_cards:
+            card["textfield"].read_only = False
+            
         self.page.update()
 
     def setup_ui(self):
         # Header
         header = ft.Row([
             ft.Text(t("title_main"), size=24, weight=ft.FontWeight.BOLD),
-            ft.IconButton(icon="settings", tooltip=t("btn_settings"), on_click=self.open_settings)
+            ft.IconButton(icon=ft.Icons.SETTINGS, tooltip=t("btn_settings"), on_click=self.open_settings)
         ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
         
-        # Global Settings (Mocked for now, will link to ConfigManager later)
+        # Global Settings
+        gp = self.config_manager.config.get("global_params", {})
+        
+        # Helper to create Label + Small TextField (No Slider)
+        def create_param_row(label_text, val, key):
+            tf = ft.TextField(value=str(val), width=60, height=30, content_padding=5, text_size=12, text_align=ft.TextAlign.RIGHT)
+            return ft.Row([
+                ft.Text(label_text, size=13, weight=ft.FontWeight.W_500, width=80),
+                tf
+            ], spacing=5)
+
+        self.batch_count_tf = ft.TextField(value=str(gp.get("batch_count", 1)), width=50, height=30, content_padding=5, text_size=12)
+        self.freeu_enable_cb = ft.Checkbox(label="FreeU Integrated (SD 1.x, SD 2.x, SDXL)", value=gp.get("freeu_enable", False))
+        
+        # Parameters
+        self.freeu_controls = {
+            "b1": create_param_row("B1", gp.get("b1", 1.01), "b1"),
+            "b2": create_param_row("B2", gp.get("b2", 1.02), "b2"),
+            "s1": create_param_row("S1", gp.get("s1", 0.99), "s1"),
+            "s2": create_param_row("S2", gp.get("s2", 0.95), "s2"),
+            "start": create_param_row(t("lbl_freeu_start"), gp.get("freeu_start", 0), "start"),
+            "end": create_param_row(t("lbl_freeu_end"), gp.get("freeu_end", 1), "end")
+        }
+
+        self.freeu_b1_tf = self.freeu_controls["b1"].controls[1]
+        self.freeu_b2_tf = self.freeu_controls["b2"].controls[1]
+        self.freeu_s1_tf = self.freeu_controls["s1"].controls[1]
+        self.freeu_s2_tf = self.freeu_controls["s2"].controls[1]
+        self.freeu_start_tf = self.freeu_controls["start"].controls[1]
+        self.freeu_end_tf = self.freeu_controls["end"].controls[1]
+
         global_settings = ft.Container(
             content=ft.Column([
-                ft.Text(t("lbl_global_settings"), weight=ft.FontWeight.BOLD),
+                ft.Text(t("lbl_global_settings"), weight=ft.FontWeight.BOLD, size=16),
                 ft.Row([
-                    ft.Text(t("lbl_batch_count")),
-                    ft.TextField(value="1", width=60, height=40)
-                ])
-            ]),
-            padding=10,
-            border_radius=8,
-            bgcolor="grey800" if self.page.theme_mode == ft.ThemeMode.DARK else "blue50"
+                    ft.Text(t("lbl_batch_count"), size=14),
+                    self.batch_count_tf,
+                ], alignment=ft.MainAxisAlignment.START, spacing=10),
+                ft.Divider(height=1, thickness=1, color="grey700"),
+                self.freeu_enable_cb,
+                ft.Column([
+                    ft.Row([self.freeu_controls["b1"], self.freeu_controls["b2"]], spacing=20),
+                    ft.Row([self.freeu_controls["s1"], self.freeu_controls["s2"]], spacing=20),
+                    ft.Row([self.freeu_controls["start"], self.freeu_controls["end"]], spacing=20),
+                ], spacing=5)
+            ], spacing=10),
+            padding=15,
+            border_radius=10
         )
         
         # Left Panel (Settings & Queue)
         left_panel = ft.Container(
             content=ft.Column([
                 header,
-                global_settings,
                 ft.Text(t("lbl_queue"), size=16, weight=ft.FontWeight.BOLD),
                 ft.Container(content=self.queue_list, expand=True, border=ft.border.all(1, "grey400"), border_radius=8),
                 ft.Row([
@@ -209,11 +258,11 @@ class MainView:
                     ft.ElevatedButton(t("btn_add_empty_queue"), on_click=lambda e: self.add_queue_card(""), expand=True)
                 ])
             ], expand=True),
-            expand=4,
+            expand=5,
             padding=10
         )
         
-        # Right Panel (Preview)
+        # Right Panel (Preview & Global Settings)
         right_panel = ft.Container(
             content=ft.Column([
                 ft.Container(
@@ -221,20 +270,21 @@ class MainView:
                         self.preview_placeholder,
                         self.preview_image
                     ], expand=True),
-                    expand=True,
-                    padding=10
+                    height=250, # Smaller preview height
+                    padding=5
                 ),
+                global_settings,
                 ft.Column([
                     self.progress_bar,
                     self.status_text
-                ], alignment=ft.MainAxisAlignment.CENTER),
+                ], alignment=ft.MainAxisAlignment.CENTER, spacing=5),
                 ft.Row([
                     ft.ElevatedButton(t("btn_save_preset"), on_click=self.open_save_preset, expand=True),
                     ft.ElevatedButton(t("btn_requeue"), on_click=self.requeue_prompt, expand=True)
                 ]),
                 ft.Row([self.btn_generate])
-            ], expand=True),
-            expand=6,
+            ], expand=True, spacing=10),
+            expand=5,
             padding=10
         )
         
@@ -259,12 +309,31 @@ class MainView:
 
     def open_save_preset(self, e):
         from gui.preset_save_view import PresetSaveView
-        psv = PresetSaveView(self.page, self.config_manager, "1girl, outdoors") # Mock current prompt
+        psv = PresetSaveView(self.page, self.config_manager, self.last_generated_prompt)
         psv.show()
 
-    def requeue_prompt(self, e):
+    async def requeue_prompt(self, e):
         if self.last_generated_prompt:
             self.add_queue_card(self.last_generated_prompt)
+
+    def save_global_params(self):
+        gp = self.config_manager.config["global_params"]
+        try: gp["batch_count"] = int(self.batch_count_tf.value)
+        except: pass
+        gp["freeu_enable"] = self.freeu_enable_cb.value
+        try: gp["freeu_b1"] = float(self.freeu_b1_tf.value)
+        except: pass
+        try: gp["freeu_b2"] = float(self.freeu_b2_tf.value)
+        except: pass
+        try: gp["freeu_s1"] = float(self.freeu_s1_tf.value)
+        except: pass
+        try: gp["freeu_s2"] = float(self.freeu_s2_tf.value)
+        except: pass
+        try: gp["freeu_start"] = float(self.freeu_start_tf.value)
+        except: pass
+        try: gp["freeu_end"] = float(self.freeu_end_tf.value)
+        except: pass
+        self.config_manager.save_config()
 
     def build(self):
         return self.main_layout

@@ -38,9 +38,17 @@ class PresetSaveView:
         
         self.dialog = ft.AlertDialog(
             title=ft.Text(t("title_preset_save")),
-            content=ft.Column([self.step_content, self.bottom_panel], width=800, height=600),
-            actions=[]
+            content=ft.Column([
+                ft.Text(t("lbl_registration_fields"), weight=ft.FontWeight.BOLD),
+                self.step_content,
+                ft.Divider(),
+                self.bottom_panel
+            ], expand=True, tight=True),
+            actions=[],
+            content_padding=20,
         )
+        # Dynamic width: 80% of window
+        self.dialog.content.width = self.page.window_width * 0.8
         
         self.go_step1()
 
@@ -84,7 +92,8 @@ class PresetSaveView:
         self.close_dialog()
 
     def show(self):
-        self.page.dialog = self.dialog
+        if self.dialog not in self.page.overlay:
+            self.page.overlay.append(self.dialog)
         self.dialog.open = True
         self.page.update()
 

@@ -52,7 +52,9 @@ class ConfigManager:
                 "freeu_b1": 1.01,
                 "freeu_b2": 1.02,
                 "freeu_s1": 0.99,
-                "freeu_s2": 0.95
+                "freeu_s2": 0.95,
+                "freeu_start": 0,
+                "freeu_end": 1
             }
         }
         loaded = self.load_json(self.config_file, default_config)

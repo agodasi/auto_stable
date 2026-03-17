@@ -39,13 +39,14 @@ class QueueManager:
 
         if global_params.get("freeu_enable", False):
             payload["alwayson_scripts"] = {
-                "FreeU Integrated": {
+                "freeu integrated (sd 1.x, sd 2.x, sdxl)": {
                     "args": [
-                        True,
                         float(global_params.get("freeu_b1", 1.01)),
                         float(global_params.get("freeu_b2", 1.02)),
                         float(global_params.get("freeu_s1", 0.99)),
-                        float(global_params.get("freeu_s2", 0.95))
+                        float(global_params.get("freeu_s2", 0.95)),
+                        float(global_params.get("freeu_start", 0)),
+                        float(global_params.get("freeu_end", 1))
                     ]
                 }
             }
@@ -59,7 +60,11 @@ class QueueManager:
             save_dir = self.check_save_directory()
         except Exception as e:
             if "on_error" in self.ui_callbacks:
-                self.ui_callbacks["on_error"](str(e))
+                import inspect
+                if inspect.iscoroutinefunction(self.ui_callbacks["on_error"]):
+                    await self.ui_callbacks["on_error"](str(e))
+                else:
+                    self.ui_callbacks["on_error"](str(e))
             self.is_running = False
             return
 
@@ -70,7 +75,11 @@ class QueueManager:
             prompt = current_item.get("prompt", "")
             
             if "on_start" in self.ui_callbacks:
-                self.ui_callbacks["on_start"](current_item)
+                import inspect
+                if inspect.iscoroutinefunction(self.ui_callbacks["on_start"]):
+                    await self.ui_callbacks["on_start"](current_item)
+                else:
+                    self.ui_callbacks["on_start"](current_item)
 
             base_params = self.config_manager.config.get("base_params", {})
             global_params = self.config_manager.config.get("global_params", {})
@@ -82,6 +91,9 @@ class QueueManager:
             try:
                 images_b64 = await gen_task
                 monitor_task.cancel()
+                
+                self.config_manager.queue_state["last_finished_prompt"] = prompt
+                self.config_manager.save_queue_state()
                 
                 for i, img_b64 in enumerate(images_b64):
                     image = self.api_client.decode_base64_image(img_b64)
@@ -97,29 +109,44 @@ class QueueManager:
                     image.save(filepath, "PNG")
                     
                     if "on_finish" in self.ui_callbacks:
-                        self.ui_callbacks["on_finish"](image, filepath)
+                        # Call as async or thread-safe if callback is async
+                        import inspect
+                        if inspect.iscoroutinefunction(self.ui_callbacks["on_finish"]):
+                            await self.ui_callbacks["on_finish"](image, filepath)
+                        else:
+                            self.ui_callbacks["on_finish"](image, filepath)
                 
-                self.config_manager.queue_state["last_finished_prompt"] = prompt
                 queue.pop(0)
-                self.config_manager.save_queue_state()
                 
             except Exception as e:
                 monitor_task.cancel()
                 if not self._cancel_requested:
                     if "on_error" in self.ui_callbacks:
-                        self.ui_callbacks["on_error"](str(e))
+                        import inspect
+                        if inspect.iscoroutinefunction(self.ui_callbacks["on_error"]):
+                            await self.ui_callbacks["on_error"](str(e))
+                        else:
+                            self.ui_callbacks["on_error"](str(e))
                 break
 
         self.is_running = False
         if "on_queue_empty" in self.ui_callbacks:
-            self.ui_callbacks["on_queue_empty"]()
+            import inspect
+            if inspect.iscoroutinefunction(self.ui_callbacks["on_queue_empty"]):
+                await self.ui_callbacks["on_queue_empty"]()
+            else:
+                self.ui_callbacks["on_queue_empty"]()
 
     async def _monitor_progress(self):
         while not self._cancel_requested:
             try:
                 progress_info = await self.api_client.get_progress()
                 if "on_progress" in self.ui_callbacks:
-                    self.ui_callbacks["on_progress"](progress_info)
+                    import inspect
+                    if inspect.iscoroutinefunction(self.ui_callbacks["on_progress"]):
+                        await self.ui_callbacks["on_progress"](progress_info)
+                    else:
+                        self.ui_callbacks["on_progress"](progress_info)
             except Exception:
                 pass
             await asyncio.sleep(1.0)

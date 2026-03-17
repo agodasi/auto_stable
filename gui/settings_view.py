@@ -26,14 +26,23 @@ class SettingsView:
         self.lang_dd = ft.Dropdown(
             label=t("lbl_language"),
             options=[ft.dropdown.Option("ja"), ft.dropdown.Option("en"), ft.dropdown.Option("zh")],
-            value=self.conf.get("language", "ja")
+            value=self.conf.get("language", "ja"),
+            expand=True
         )
+        self.restart_txt = ft.Text(t("msg_restart"), color="red", visible=False)
         
         bp = self.conf.get("base_params", {})
         self.ckpt_dd = ft.Dropdown(label=t("lbl_checkpoint"), options=[ft.dropdown.Option(bp.get("checkpoint", "None"))], value=bp.get("checkpoint", "None"), expand=True)
         self.refresh_btn = ft.ElevatedButton(t("btn_refresh"), on_click=self.refresh_models)
         
-        self.neg_prompt_tf = ft.TextField(label=t("lbl_negative_prompt"), value=bp.get("negative_prompt", ""), multiline=True, min_lines=2, max_lines=4)
+        self.neg_prompt_tf = ft.TextField(
+            label=t("lbl_negative_prompt"), 
+            value=bp.get("negative_prompt", ""), 
+            multiline=True, 
+            min_lines=10, 
+            max_lines=12,
+            expand=True
+        )
         self.steps_tf = ft.TextField(label=t("lbl_steps"), value=str(bp.get("steps", 20)), width=100)
         self.cfg_tf = ft.TextField(label=t("lbl_cfg_scale"), value=str(bp.get("cfg_scale", 7.0)), width=100)
         self.width_tf = ft.TextField(label=t("lbl_width"), value=str(bp.get("width", 512)), width=100)
@@ -51,47 +60,64 @@ class SettingsView:
         )
         
         # FilePicker for directory selection
-        self.file_picker = ft.FilePicker(on_result=self.on_folder_selected)
-        self.page.overlay.append(self.file_picker)
+        # FilePicker for directory selection (on_result is removed in v0.8+)
+        self.file_picker = ft.FilePicker()
 
     def build_content(self):
         system_tab = ft.Column([
+            ft.Container(height=10), # Spacer
             ft.Row([self.api_url_tf, self.test_btn, self.conn_status]),
             ft.Row([self.save_dir_tf, self.browse_btn]),
             self.theme_dd,
-            self.lang_dd
-        ], scroll=ft.ScrollMode.AUTO, height=400)
+            ft.Row([self.lang_dd, self.restart_txt])
+        ], scroll=ft.ScrollMode.AUTO, expand=True)
         
         gen_tab = ft.Column([
+            ft.Container(height=10), # Spacer
             ft.Row([self.ckpt_dd, self.refresh_btn]),
             self.neg_prompt_tf,
             ft.Row([self.steps_tf, self.cfg_tf]),
             ft.Row([self.width_tf, self.height_tf])
-        ], scroll=ft.ScrollMode.AUTO, height=400)
+        ], scroll=ft.ScrollMode.AUTO, expand=True)
         
         preset_tab = ft.Column([
             ft.Text("Presets management will be implemented here.") # Placeholder for simplicity
-        ], scroll=ft.ScrollMode.AUTO, height=400)
+        ], scroll=ft.ScrollMode.AUTO, expand=True)
         
-        tabs = ft.Tabs(
-            selected_index=0,
+        tab_bar = ft.TabBar(
             tabs=[
-                ft.Tab(text=t("tab_system"), content=system_tab),
-                ft.Tab(text=t("tab_base"), content=gen_tab),
-                ft.Tab(text=t("tab_preset"), content=preset_tab),
-            ],
-            expand=1,
+                ft.Tab(label=t("tab_system")),
+                ft.Tab(label=t("tab_base")),
+                ft.Tab(label=t("tab_preset")),
+            ]
         )
         
-        return ft.Container(content=tabs, width=600, height=500)
+        tab_view = ft.TabBarView(
+            controls=[
+                ft.Container(content=system_tab, padding=ft.padding.only(top=20, left=15, right=15)),
+                ft.Container(content=gen_tab, padding=ft.padding.only(top=20, left=15, right=15)),
+                ft.Container(content=preset_tab, padding=ft.padding.only(top=20, left=15, right=15))
+            ],
+            expand=True
+        )
+        
+        tabs_controller = ft.Tabs(
+            content=ft.Column([tab_bar, tab_view], expand=True),
+            length=3,
+            selected_index=0,
+            expand=True
+        )
+        
+        return ft.Container(content=tabs_controller, width=800, height=600, padding=10)
 
     def show(self):
-        self.page.dialog = self.dialog
+        if self.dialog not in self.page.overlay:
+            self.page.overlay.append(self.dialog)
         self.dialog.open = True
         self.page.update()
         
         # Auto test connection on open
-        self.test_connection(None)
+        self.page.run_task(self.test_connection, None)
 
     def close_dialog(self, e=None):
         self.dialog.open = False
@@ -99,9 +125,8 @@ class SettingsView:
         if self.on_close_callback:
             self.on_close_callback()
 
-    def test_connection(self, e):
+    async def test_connection(self, e):
         import asyncio
-        import threading
         from core.api_client import SDForgeAPIClient
         
         url = self.api_url_tf.value
@@ -110,28 +135,23 @@ class SettingsView:
         self.conn_status.color = "grey"
         self.page.update()
         
-        def run_test():
-            try:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                loop.run_until_complete(temp_client.get_progress())
-                
-                self.conn_status.value = t("status_connected")
-                self.conn_status.color = "green"
-                self.api_client.base_url = url.rstrip('/')
-            except Exception:
-                self.conn_status.value = t("status_disconnected")
-                self.conn_status.color = "red"
-            self.page.update()
+        try:
+            # We don't need threading, just await since this is an async-compatible handler
+            await temp_client.get_progress()
             
-        threading.Thread(target=run_test, daemon=True).start()
+            self.conn_status.value = t("status_connected")
+            self.conn_status.color = "green"
+            self.api_client.base_url = url.rstrip('/')
+        except Exception:
+            self.conn_status.value = t("status_disconnected")
+            self.conn_status.color = "red"
+        self.page.update()
 
-    def browse_folder(self, e):
-        self.file_picker.get_directory_path()
-
-    def on_folder_selected(self, e: ft.FilePickerResultEvent):
-        if e.path:
-            self.save_dir_tf.value = e.path
+    async def browse_folder(self, e):
+        # In v0.8.0+, get_directory_path is async and returns the path directly
+        path = await self.file_picker.get_directory_path()
+        if path:
+            self.save_dir_tf.value = path
             self.page.update()
 
     def apply_settings(self, e=None):
@@ -171,38 +191,30 @@ class SettingsView:
         if lang_changed:
             from core.i18n import set_language
             set_language(new_lang)
-            # Notifying user to restart
-            snack = ft.SnackBar(ft.Text(t("msg_restart")))
-            self.page.overlay.append(snack)
-            snack.open = True
+            # Notifying user to restart inline
+            self.restart_txt.visible = True
             self.page.update()
 
     def save_and_close(self, e):
         self.apply_settings()
         self.close_dialog()
 
-    def refresh_models(self, e):
+    async def refresh_models(self, e):
         import asyncio
-        import threading
         
         self.refresh_btn.disabled = True
         self.page.update()
         
-        def run_async():
-            try:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                models = loop.run_until_complete(self.api_client.get_models())
-                titles = [m.get("title") for m in models]
-                if not titles: titles = ["None"]
-                
-                self.ckpt_dd.options = [ft.dropdown.Option(t) for t in titles]
-                if self.ckpt_dd.value not in titles:
-                    self.ckpt_dd.value = titles[0]
-            except Exception as ex:
-                print(f"Error fetching models: {ex}")
-            finally:
-                self.refresh_btn.disabled = False
-                self.page.update()
-                
-        threading.Thread(target=run_async, daemon=True).start()
+        try:
+            models = await self.api_client.get_models()
+            titles = [m.get("title") for m in models]
+            if not titles: titles = ["None"]
+            
+            self.ckpt_dd.options = [ft.dropdown.Option(t) for t in titles]
+            if self.ckpt_dd.value not in titles:
+                self.ckpt_dd.value = titles[0]
+        except Exception as ex:
+            print(f"Error fetching models: {ex}")
+        finally:
+            self.refresh_btn.disabled = False
+            self.page.update()
