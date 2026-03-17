@@ -9,6 +9,9 @@ class SettingsWindow(ctk.CTkToplevel):
         self.config_manager = config_manager
         self.api_client = api_client
         
+        # Focus control
+        self.after(100, lambda: [self.lift(), self.focus_force()])
+        
         # Tabs for different settings
         self.tabview = ctk.CTkTabview(self)
         self.tabview.pack(fill="both", expand=True, padx=10, pady=10)
@@ -234,7 +237,7 @@ class SettingsWindow(ctk.CTkToplevel):
 
     def save_and_close(self):
         self.apply_settings()
-        self.destroy()
+        # Removed self.destroy() as per user request to stay open
 
     def refresh_models(self):
         import asyncio
