@@ -195,6 +195,10 @@ class SettingsWindow(ctk.CTkToplevel):
         new_lang = self.lang_option.get()
         lang_changed = old_lang != new_lang
         
+        old_theme = self.config_manager.config.get("theme")
+        new_theme = self.theme_option.get()
+        theme_changed = old_theme != new_theme
+        
         # Update config object from UI
         self.config_manager.config["api_url"] = self.api_url_entry.get()
         self.config_manager.config["save_dir"] = self.save_dir_entry.get()
@@ -209,6 +213,9 @@ class SettingsWindow(ctk.CTkToplevel):
         bp["height"] = int(self.height_entry.get())
         
         self.config_manager.save_config()
+        
+        if theme_changed:
+            ctk.set_appearance_mode(new_theme)
         
         if lang_changed:
             from tkinter import messagebox

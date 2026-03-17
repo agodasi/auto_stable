@@ -10,6 +10,11 @@ class MainWindow(ctk.CTk):
         super().__init__()
         
         self.config_manager = ConfigManager()
+        
+        # Apply theme on startup
+        ctk.set_appearance_mode(self.config_manager.config.get("theme", "Dark"))
+        ctk.set_default_color_theme("blue")
+        
         self.api_client = SDForgeAPIClient(self.config_manager.config["api_url"])
         
         self.title(t("title_main"))
