@@ -10,10 +10,10 @@ class PresetSaveDialog(ctk.CTkToplevel):
         self.on_save = on_save
         
         # Bottom Prompt Area (Permanent)
-        self.bottom_frame = ctk.CTkFrame(self, fg_color=("#BBDEFB", "#253A4E"))
+        self.bottom_frame = ctk.CTkFrame(self, fg_color=("#E3F2FD", "#2B2B2B"))
         self.bottom_frame.pack(side="bottom", fill="x", padx=10, pady=10)
         
-        self.configure(fg_color=("#E3F2FD", "#1A2A3A"))
+        self.configure(fg_color=("#F5F9FF", "#212121"))
         ctk.CTkLabel(self.bottom_frame, text=t("lbl_current_prompt_guide"), font=ctk.CTkFont(weight="bold")).pack(anchor="w", pady=5)
         self.prompt_text = ctk.CTkTextbox(self.bottom_frame, height=100)
         self.prompt_text.pack(fill="x", padx=5, pady=5)
@@ -21,7 +21,7 @@ class PresetSaveDialog(ctk.CTkToplevel):
         self.prompt_text.configure(state="disabled")
         
         # Top Area container
-        self.top_frame = ctk.CTkFrame(self, fg_color=("#BBDEFB", "#253A4E"))
+        self.top_frame = ctk.CTkFrame(self, fg_color=("#E3F2FD", "#2B2B2B"))
         self.top_frame.pack(side="top", fill="both", expand=True, padx=10, pady=10)
         
         # Step 1: Situation

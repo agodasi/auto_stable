@@ -13,7 +13,7 @@ class SettingsWindow(ctk.CTkToplevel):
         self.after(100, lambda: [self.lift(), self.focus_force()])
         
         # Color configuration
-        self.configure(fg_color=("#E3F2FD", "#1A2A3A"))
+        self.configure(fg_color=("#F5F9FF", "#212121"))
         
         # Tabs for different settings
         self.tabview = ctk.CTkTabview(self)
@@ -27,9 +27,9 @@ class SettingsWindow(ctk.CTkToplevel):
         self.setup_generation_tab()
         self.setup_preset_tab()
 
-        # Apply blue-ish colors
-        self.configure(fg_color=("#E3F2FD", "#1A2A3A"))
-        self.tabview.configure(segmented_button_selected_color=("#2196F3", "#1976D2"))
+        # Apply blue-ish colors for Light mode
+        self.configure(fg_color=("#F5F9FF", "#212121"))
+        self.tabview.configure(segmented_button_selected_color=("#2196F3", "#1F538D"))
 
         # Control Buttons
         btn_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -138,7 +138,7 @@ class SettingsWindow(ctk.CTkToplevel):
         tab.grid_rowconfigure(0, weight=1)
         
         # Situations Column
-        sit_frame = ctk.CTkFrame(tab, fg_color=("#BBDEFB", "#253A4E"))
+        sit_frame = ctk.CTkFrame(tab, fg_color=("#E3F2FD", "#2B2B2B"))
         sit_frame.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
         ctk.CTkLabel(sit_frame, text=t("lbl_situations"), font=ctk.CTkFont(weight="bold")).pack(pady=5)
         
@@ -148,7 +148,7 @@ class SettingsWindow(ctk.CTkToplevel):
         ctk.CTkButton(sit_frame, text=t("btn_add_situation"), command=lambda: self.add_preset_prompt("situations")).pack(pady=5)
         
         # Characters Column
-        char_frame = ctk.CTkFrame(tab, fg_color=("#BBDEFB", "#253A4E"))
+        char_frame = ctk.CTkFrame(tab, fg_color=("#E3F2FD", "#2B2B2B"))
         char_frame.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
         ctk.CTkLabel(char_frame, text=t("lbl_characters"), font=ctk.CTkFont(weight="bold")).pack(pady=5)
         
