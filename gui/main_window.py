@@ -107,7 +107,7 @@ class MainWindow(ctk.CTk):
     def open_settings(self):
         from gui.settings_window import SettingsWindow
         if not hasattr(self, "settings_window") or not self.settings_window.winfo_exists():
-            self.settings_window = SettingsWindow(self, self.config_manager)
+            self.settings_window = SettingsWindow(self, self.config_manager, self.api_client)
         else:
             self.settings_window.focus()
         

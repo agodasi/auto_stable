@@ -2,11 +2,12 @@ import customtkinter as ctk
 from core.i18n import t
 
 class SettingsWindow(ctk.CTkToplevel):
-    def __init__(self, parent, config_manager):
+    def __init__(self, parent, config_manager, api_client):
         super().__init__(parent)
         self.title(t("title_settings"))
         self.geometry("900x700")
         self.config_manager = config_manager
+        self.api_client = api_client
         
         # Tabs for different settings
         self.tabview = ctk.CTkTabview(self)
@@ -62,8 +63,15 @@ class SettingsWindow(ctk.CTkToplevel):
         
         # Checkpoint
         ctk.CTkLabel(tab, text=t("lbl_checkpoint")).grid(row=0, column=0, padx=10, pady=10, sticky="w")
-        self.checkpoint_option = ctk.CTkOptionMenu(tab, values=[bp.get("checkpoint", "None")], width=250)
-        self.checkpoint_option.grid(row=0, column=1, padx=10, pady=10, sticky="w")
+        
+        cp_frame = ctk.CTkFrame(tab, fg_color="transparent")
+        cp_frame.grid(row=0, column=1, padx=10, pady=10, sticky="w")
+        
+        self.checkpoint_option = ctk.CTkOptionMenu(cp_frame, values=[bp.get("checkpoint", "None")], width=250)
+        self.checkpoint_option.pack(side="left", padx=(0, 5))
+        
+        self.refresh_models_btn = ctk.CTkButton(cp_frame, text=t("btn_refresh"), width=60, command=self.refresh_models)
+        self.refresh_models_btn.pack(side="left")
         
         # Negative Prompt
         ctk.CTkLabel(tab, text=t("lbl_negative_prompt")).grid(row=1, column=0, padx=10, pady=10, sticky="nw")
@@ -206,6 +214,7 @@ class SettingsWindow(ctk.CTkToplevel):
         self.config_manager.config["language"] = new_lang
         
         bp = self.config_manager.config["base_params"]
+        bp["checkpoint"] = self.checkpoint_option.get()
         bp["negative_prompt"] = self.neg_prompt_entry.get("1.0", "end-1c").strip()
         bp["steps"] = int(self.steps_entry.get())
         bp["cfg_scale"] = float(self.cfg_entry.get())
@@ -226,4 +235,39 @@ class SettingsWindow(ctk.CTkToplevel):
     def save_and_close(self):
         self.apply_settings()
         self.destroy()
+
+    def refresh_models(self):
+        import asyncio
+        import threading
+        
+        self.refresh_models_btn.configure(state="disabled")
+        
+        def run_async():
+            try:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                models = loop.run_until_complete(self.api_client.get_models())
+                titles = [m.get("title") for m in models]
+                
+                if not titles:
+                    titles = ["None"]
+                
+                self.after(0, lambda: self.update_checkpoint_list(titles))
+            except Exception as e:
+                from tkinter import messagebox
+                print(f"Error fetching models: {e}")
+                self.after(0, lambda: [
+                    messagebox.showerror(t("msg_error"), f"Failed to fetch models: {e}"),
+                    self.refresh_models_btn.configure(state="normal")
+                ])
+
+        threading.Thread(target=run_async, daemon=True).start()
+
+    def update_checkpoint_list(self, titles):
+        self.checkpoint_option.configure(values=titles)
+        # If current selection is not in list, set to first one if available
+        current = self.checkpoint_option.get()
+        if current not in titles:
+            self.checkpoint_option.set(titles[0])
+        self.refresh_models_btn.configure(state="normal")
 
