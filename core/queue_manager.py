@@ -99,6 +99,7 @@ class QueueManager:
                     if "on_finish" in self.ui_callbacks:
                         self.ui_callbacks["on_finish"](image, filepath)
                 
+                self.config_manager.queue_state["last_finished_prompt"] = prompt
                 queue.pop(0)
                 self.config_manager.save_queue_state()
                 

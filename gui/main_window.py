@@ -17,6 +17,9 @@ class MainWindow(ctk.CTk):
         
         self.api_client = SDForgeAPIClient(self.config_manager.config["api_url"])
         
+        # Load last generated prompt for requeue feature
+        self.last_generated_prompt = self.config_manager.queue_state.get("last_finished_prompt", "")
+        
         self.title(t("title_main"))
         self.geometry("1100x700")
         self.minsize(900, 600)
@@ -180,9 +183,16 @@ class MainWindow(ctk.CTk):
         self.status_label = ctk.CTkLabel(progress_frame, text=t("lbl_status_idle"))
         self.status_label.grid(row=1, column=0, sticky="w")
         
-        # Save Preset Button
-        save_preset_btn = ctk.CTkButton(self.right_frame, text=t("btn_save_preset"), command=self.save_preset)
-        save_preset_btn.grid(row=2, column=0, padx=10, pady=5, sticky="ew")
+        # Preset & Re-queue Buttons
+        preset_requeue_frame = ctk.CTkFrame(self.right_frame, fg_color="transparent")
+        preset_requeue_frame.grid(row=2, column=0, padx=10, pady=5, sticky="ew")
+        preset_requeue_frame.grid_columnconfigure((0, 1), weight=1)
+        
+        save_preset_btn = ctk.CTkButton(preset_requeue_frame, text=t("btn_save_preset"), command=self.save_preset)
+        save_preset_btn.grid(row=0, column=0, padx=(0, 5), sticky="ew")
+        
+        requeue_btn = ctk.CTkButton(preset_requeue_frame, text=t("btn_requeue"), command=self.requeue_current_prompt)
+        requeue_btn.grid(row=0, column=1, padx=(5, 0), sticky="ew")
         
         # Generation Control
         self.generate_btn = ctk.CTkButton(self.right_frame, text=t("btn_generate"), fg_color="green", hover_color="darkgreen", height=50, font=ctk.CTkFont(size=16, weight="bold"), command=self.toggle_generation)
@@ -242,18 +252,19 @@ class MainWindow(ctk.CTk):
         ])
 
     def on_gen_finish(self, image, filepath):
-        # Update preview (simplified)
-        from PIL import ImageTk
+        # Update preview
         img_w, img_h = self.preview_label.winfo_width(), self.preview_label.winfo_height()
         if img_w < 10: img_w, img_h = 512, 512
         
-        image.thumbnail((img_w, img_h))
-        photo = ImageTk.PhotoImage(image)
+        # Use CTkImage to avoid HighDPI scaling warnings
+        ctk_image = ctk.CTkImage(light_image=image, dark_image=image, size=(img_w, img_h))
         
         def update_ui():
-            self.preview_label.configure(image=photo, text="")
-            self.preview_label.image = photo  # Keep reference
+            self.preview_label.configure(image=ctk_image, text="")
+            self.preview_label.image = ctk_image  # Keep reference
             self.refresh_queue_ui_after_pop()
+            # Store the last generated prompt for requeue
+            self.last_generated_prompt = self.config_manager.queue_state.get("last_finished_prompt", "")
             
         self.after(0, update_ui)
 
@@ -292,4 +303,14 @@ class MainWindow(ctk.CTk):
             self.config_manager.save_presets()
             
         PresetSaveDialog(self, current_prompt, on_preset_save)
+
+    def requeue_current_prompt(self):
+        # We need to know what prompt was just finished. 
+        # Let's assume we store it when it finishes.
+        if hasattr(self, "last_generated_prompt") and self.last_generated_prompt:
+            self.add_queue_card(self.last_generated_prompt)
+        else:
+            # Fallback: if no last prompt, maybe take from the first card or something
+            # For now, just a message or ignore
+            pass
 
