@@ -38,9 +38,22 @@ class SettingsWindow(ctk.CTkToplevel):
         
         # API URL
         ctk.CTkLabel(tab, text=t("lbl_api_url")).grid(row=0, column=0, padx=10, pady=10, sticky="w")
-        self.api_url_entry = ctk.CTkEntry(tab, width=300)
+        
+        api_frame = ctk.CTkFrame(tab, fg_color="transparent")
+        api_frame.grid(row=0, column=1, padx=10, pady=10, sticky="w")
+        
+        self.api_url_entry = ctk.CTkEntry(api_frame, width=300)
         self.api_url_entry.insert(0, conf.get("api_url", ""))
-        self.api_url_entry.grid(row=0, column=1, padx=10, pady=10, sticky="w")
+        self.api_url_entry.pack(side="left", padx=(0, 5))
+        
+        self.test_conn_btn = ctk.CTkButton(api_frame, text=t("btn_test_connection"), width=60, command=self.test_connection)
+        self.test_conn_btn.pack(side="left", padx=5)
+        
+        self.conn_status_label = ctk.CTkLabel(api_frame, text=t("status_disconnected"), text_color="gray")
+        self.conn_status_label.pack(side="left", padx=5)
+        
+        # Initial check
+        self.after(500, self.test_connection)
         
         # Save Directory
         ctk.CTkLabel(tab, text=t("lbl_save_dir")).grid(row=1, column=0, padx=10, pady=10, sticky="w")
@@ -287,4 +300,38 @@ class SettingsWindow(ctk.CTkToplevel):
         if directory:
             self.save_dir_entry.delete(0, "end")
             self.save_dir_entry.insert(0, directory)
+
+    def test_connection(self):
+        import asyncio
+        import threading
+        from core.api_client import SDForgeAPIClient
+        
+        url = self.api_url_entry.get()
+        temp_client = SDForgeAPIClient(url)
+        
+        self.test_conn_btn.configure(state="disabled")
+        self.conn_status_label.configure(text="...", text_color="gray")
+        
+        def run_test():
+            try:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                # Use a lightweight call to test connection
+                loop.run_until_complete(temp_client.get_progress())
+                
+                def update_success():
+                    self.conn_status_label.configure(text=t("status_connected"), text_color="#4CAF50")
+                    self.test_conn_btn.configure(state="normal")
+                    # Update the project's actual api_client if URL is valid
+                    self.api_client.base_url = url.rstrip('/')
+
+                self.after(0, update_success)
+            except Exception:
+                def update_fail():
+                    self.conn_status_label.configure(text=t("status_disconnected"), text_color="#F44336")
+                    self.test_conn_btn.configure(state="normal")
+                self.after(0, update_fail)
+
+        threading.Thread(target=run_test, daemon=True).start()
+
 
