@@ -315,7 +315,22 @@ class SettingsView:
         self.page.update()
 
     def delete_preset(self, type, index):
-        if 0 <= index < len(self.config_manager.presets[type]):
-            self.config_manager.presets[type].pop(index)
-            self.config_manager.save_presets()
-            self.refresh_presets()
+        def confirm_delete(e):
+            if 0 <= index < len(self.config_manager.presets[type]):
+                self.config_manager.presets[type].pop(index)
+                self.config_manager.save_presets()
+                self.refresh_presets()
+            dlg.open = False
+            self.page.update()
+
+        dlg = ft.AlertDialog(
+            title=ft.Text(t("title_confirm")),
+            content=ft.Text(t("msg_confirm_delete")),
+            actions=[
+                ft.TextButton(t("btn_yes"), on_click=confirm_delete),
+                ft.TextButton(t("btn_no"), on_click=lambda e: setattr(dlg, "open", False) or self.page.update()),
+            ],
+        )
+        self.page.overlay.append(dlg)
+        dlg.open = True
+        self.page.update()

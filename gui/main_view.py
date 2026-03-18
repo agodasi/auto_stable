@@ -33,10 +33,24 @@ class MainView:
             expand=True
         )
         
-        self.queue_list = ft.ListView(expand=True, spacing=10, auto_scroll=False)
+        self.queue_list = ft.ReorderableListView(
+            expand=True, 
+            spacing=10, 
+            on_reorder=self.on_reorder,
+            show_default_drag_handles=False
+        )
         
         self.setup_ui()
         self.load_queue_from_state()
+
+    def on_reorder(self, e):
+        # Move in self.queue_cards
+        item = self.queue_cards.pop(e.old_index)
+        self.queue_cards.insert(e.new_index, item)
+        # Update UI Controls to match new order
+        self.queue_list.controls = [c["container"] for c in self.queue_cards]
+        self.save_current_queue_state()
+        self.page.update()
 
     def load_queue_from_state(self):
         saved_queue = self.config_manager.queue_state.get("queue", [])
@@ -64,13 +78,33 @@ class MainView:
         )
         
         def remove_card(e):
-            self.queue_list.controls.remove(card_container)
-            self.queue_cards = [c for c in self.queue_cards if c["id"] != card_id]
-            self.save_current_queue_state()
+            def confirm_remove(e):
+                self.queue_list.controls.remove(card_container)
+                self.queue_cards = [c for c in self.queue_cards if c["id"] != card_id]
+                self.save_current_queue_state()
+                dlg.open = False
+                self.page.update()
+
+            dlg = ft.AlertDialog(
+                title=ft.Text(t("title_confirm")),
+                content=ft.Text(t("msg_confirm_delete")),
+                actions=[
+                    ft.TextButton(t("btn_yes"), on_click=confirm_remove),
+                    ft.TextButton(t("btn_no"), on_click=lambda e: setattr(dlg, "open", False) or self.page.update()),
+                ],
+            )
+            self.page.overlay.append(dlg)
+            dlg.open = True
             self.page.update()
             
         header = ft.Row([
-            ft.Text(t("lbl_queue_item"), weight=ft.FontWeight.BOLD),
+            ft.Row([
+                ft.ReorderableDragHandle(
+                    content=ft.Icon(ft.Icons.DRAG_HANDLE, color="grey400"),
+                    mouse_cursor=ft.MouseCursor.GRAB if hasattr(ft, "MouseCursor") else None
+                ),
+                ft.Text(t("lbl_queue_item"), weight=ft.FontWeight.BOLD)
+            ], spacing=10),
             ft.IconButton(icon=ft.Icons.DELETE, icon_color="red500", on_click=remove_card)
         ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
         
