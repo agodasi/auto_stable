@@ -31,7 +31,8 @@ class PresetSaveView:
         self.step_content = ft.Container()
         
         self.sit_name_tf = ft.TextField(label=t("step1_save_sit") + " - " + t("ph_preset_name"), expand=True)
-        self.sit_text_tf = ft.TextField(label="Text", multiline=True, min_lines=4, expand=True)
+        self.sit_text_front_tf = ft.TextField(label=t("lbl_text_front"), multiline=True, min_lines=2, expand=True)
+        self.sit_text_back_tf = ft.TextField(label=t("lbl_text_back"), multiline=True, min_lines=2, expand=True)
         
         self.char_name_tf = ft.TextField(label=t("step2_save_char") + " - " + t("ph_preset_name"), expand=True)
         self.char_text_tf = ft.TextField(label="Text", multiline=True, min_lines=4, expand=True)
@@ -48,7 +49,7 @@ class PresetSaveView:
             content_padding=20,
         )
         # Dynamic width: 80% of window
-        self.dialog.content.width = self.page.window_width * 0.8
+        self.dialog.content.width = self.page.window.width * 0.8
         
         self.go_step1()
 
@@ -56,7 +57,8 @@ class PresetSaveView:
         content = ft.Column([
             ft.Text(t("step1_save_sit"), size=16),
             self.sit_name_tf,
-            self.sit_text_tf
+            self.sit_text_front_tf,
+            self.sit_text_back_tf
         ], expand=True)
         
         self.step_content.content = content
@@ -81,10 +83,15 @@ class PresetSaveView:
         self.page.update()
 
     def save_and_close(self, e):
-        sit_data = {"name": self.sit_name_tf.value, "text": self.sit_text_tf.value.strip()}
+        sit_data = {
+            "name": self.sit_name_tf.value,
+            "text_front": self.sit_text_front_tf.value.strip(),
+            "text_back": self.sit_text_back_tf.value.strip()
+        }
         char_data = {"name": self.char_name_tf.value, "text": self.char_text_tf.value.strip()}
         
-        if sit_data.get("name") and sit_data.get("text"):
+        # It's okay if one of the text fields is empty, but at least name must exist
+        if sit_data.get("name") and (sit_data.get("text_front") or sit_data.get("text_back")):
             self.config_manager.add_preset("situations", sit_data)
         if char_data.get("name") and char_data.get("text"):
             self.config_manager.add_preset("characters", char_data)

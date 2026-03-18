@@ -8,10 +8,10 @@ async def main(page: ft.Page):
     
     # Base page settings
     page.title = "Stable Diffusion Forge Queue Manager"
-    page.window.width = 1100
-    page.window.height = 700
-    page.window.min_width = 900
-    page.window.min_height = 600
+    page.window.width = 1400
+    page.window.height = 850
+    page.window.min_width = 1200
+    page.window.min_height = 700
     
     # Initialize API Client
     api_url = config_manager.config.get("api_url", "http://127.0.0.1:7860")

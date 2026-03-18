@@ -247,7 +247,7 @@ class MainView:
             border_radius=10
         )
         
-        # Left Panel (Settings & Queue)
+        # Left Panel (Queue)
         left_panel = ft.Container(
             content=ft.Column([
                 header,
@@ -258,7 +258,7 @@ class MainView:
                     ft.ElevatedButton(t("btn_add_empty_queue"), on_click=lambda e: self.add_queue_card(""), expand=True)
                 ])
             ], expand=True),
-            expand=5,
+            expand=1,
             padding=10
         )
         
@@ -284,7 +284,7 @@ class MainView:
                 ]),
                 ft.Row([self.btn_generate])
             ], expand=True, spacing=10),
-            expand=5,
+            expand=1,
             padding=10
         )
         

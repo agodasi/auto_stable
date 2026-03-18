@@ -50,6 +50,7 @@ class WizardView:
 
     def finish_wizard(self, e):
         prompt_parts = []
+        sit_back_text = ""
         
         sit_val = self.sit_dd.value
         char_val = self.char_dd.value
@@ -58,14 +59,25 @@ class WizardView:
             # Find actual prompt text
             for item in self.presets.get("situations", []):
                 if item["name"] == sit_val:
-                    prompt_parts.append(item["text"])
+                    if "text_front" in item or "text_back" in item:
+                        front = item.get("text_front", "").strip()
+                        back = item.get("text_back", "").strip()
+                        if front: prompt_parts.append(front)
+                        # We temporarily attach 'back' to a local variable to be appended after the character
+                        sit_back_text = back
+                    else:
+                        # Legacy support
+                        prompt_parts.append(item.get("text", "").strip())
                     break
         
         if char_val != t("opt_skip"):
             for item in self.presets.get("characters", []):
                 if item["name"] == char_val:
-                    prompt_parts.append(item["text"])
+                    prompt_parts.append(item.get("text", "").strip())
                     break
+                    
+        if sit_back_text:
+            prompt_parts.append(sit_back_text)
                     
         final_text = "\n".join(prompt_parts)
         if final_text:

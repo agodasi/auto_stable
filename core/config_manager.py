@@ -69,7 +69,7 @@ class ConfigManager:
     def load_presets(self):
         from core.i18n import t
         default_presets = {
-            "situations": [{"name": t("default_sit_name"), "text": "1girl, outdoors, highly detailed"}],
+            "situations": [{"name": t("default_sit_name"), "text_front": "1girl, outdoors, highly detailed", "text_back": ""}],
             "characters": [{"name": t("default_char_name"), "text": "masterpiece, best quality, smiling"}]
         }
         loaded = self.load_json(self.presets_file, default_presets)
@@ -90,3 +90,9 @@ class ConfigManager:
         
     def save_queue_state(self):
         self.save_json(self.queue_state_file, self.queue_state)
+        
+    def add_preset(self, type, data):
+        """Adds a new preset and saves it."""
+        if type in self.presets:
+            self.presets[type].append(data)
+            self.save_presets()

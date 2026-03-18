@@ -9,6 +9,10 @@ class SettingsView:
         self.on_close_callback = on_close_callback
         self.conf = self.config_manager.config
         
+        # Presets UI
+        self.situation_list = ft.Column(spacing=5, scroll=ft.ScrollMode.AUTO)
+        self.character_list = ft.Column(spacing=5, scroll=ft.ScrollMode.AUTO)
+        
         # Build UI Components
         self.api_url_tf = ft.TextField(label=t("lbl_api_url"), value=self.conf.get("api_url", "http://127.0.0.1:7860"), expand=True)
         self.test_btn = ft.ElevatedButton(t("btn_test_connection"), on_click=self.test_connection)
@@ -80,8 +84,15 @@ class SettingsView:
             ft.Row([self.width_tf, self.height_tf])
         ], scroll=ft.ScrollMode.AUTO, expand=True)
         
+        self.refresh_presets()
         preset_tab = ft.Column([
-            ft.Text("Presets management will be implemented here.") # Placeholder for simplicity
+            ft.Text(t("lbl_situations"), size=16, weight=ft.FontWeight.BOLD),
+            ft.Container(content=self.situation_list, height=200, border=ft.border.all(1, "grey400"), border_radius=8, padding=5),
+            ft.ElevatedButton(t("btn_add_situation"), icon="add", on_click=lambda e: self.show_preset_dialog("situations")),
+            ft.Divider(height=20),
+            ft.Text(t("lbl_characters"), size=16, weight=ft.FontWeight.BOLD),
+            ft.Container(content=self.character_list, height=200, border=ft.border.all(1, "grey400"), border_radius=8, padding=5),
+            ft.ElevatedButton(t("btn_add_character"), icon="add", on_click=lambda e: self.show_preset_dialog("characters")),
         ], scroll=ft.ScrollMode.AUTO, expand=True)
         
         tab_bar = ft.TabBar(
@@ -218,3 +229,93 @@ class SettingsView:
         finally:
             self.refresh_btn.disabled = False
             self.page.update()
+
+    def refresh_presets(self):
+        self.situation_list.controls = []
+        for i, p in enumerate(self.config_manager.presets.get("situations", [])):
+            self.situation_list.controls.append(self.build_preset_item("situations", i, p["name"]))
+            
+        self.character_list.controls = []
+        for i, p in enumerate(self.config_manager.presets.get("characters", [])):
+            self.character_list.controls.append(self.build_preset_item("characters", i, p["name"]))
+        
+        if hasattr(self, 'page') and self.page:
+            self.page.update()
+
+    def build_preset_item(self, type, index, name):
+        return ft.Container(
+            content=ft.Row([
+                ft.Text(name, expand=True),
+                ft.Row([
+                    ft.IconButton(icon=ft.Icons.EDIT, on_click=lambda e: self.show_preset_dialog(type, index), icon_size=16),
+                    ft.IconButton(icon=ft.Icons.DELETE, on_click=lambda e: self.delete_preset(type, index), icon_size=16)
+                ], spacing=0)
+            ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+            padding=ft.padding.symmetric(horizontal=5),
+            border=ft.border.only(bottom=ft.border.BorderSide(1, "grey700"))
+        )
+
+    def show_preset_dialog(self, type, index=None):
+        is_edit = (index is not None)
+        existing_data = self.config_manager.presets[type][index] if is_edit else {}
+        
+        name_tf = ft.TextField(label=t("lbl_name"), value=existing_data.get("name", ""))
+        
+        is_situation = (type == "situations")
+        
+        if is_situation:
+            text_front_tf = ft.TextField(label=t("lbl_text_front"), multiline=True, min_lines=5, expand=True, value=existing_data.get("text_front", existing_data.get("text", "")))
+            text_back_tf = ft.TextField(label=t("lbl_text_back"), multiline=True, min_lines=5, expand=True, value=existing_data.get("text_back", ""))
+            content_controls = [name_tf, text_front_tf, text_back_tf]
+        else:
+            text_tf = ft.TextField(label=t("lbl_text"), multiline=True, min_lines=10, expand=True, value=existing_data.get("text", ""))
+            content_controls = [name_tf, text_tf]
+        
+        def save_preset(e):
+            if not name_tf.value: return
+            
+            if is_situation:
+                if not text_front_tf.value and not text_back_tf.value: return
+                data = {
+                    "name": name_tf.value,
+                    "text_front": text_front_tf.value,
+                    "text_back": text_back_tf.value
+                }
+            else:
+                if not text_tf.value: return
+                data = {
+                    "name": name_tf.value,
+                    "text": text_tf.value
+                }
+            
+            if is_edit:
+                self.config_manager.presets[type][index] = data
+                self.config_manager.save_presets()
+            else:
+                self.config_manager.add_preset(type, data)
+                
+            self.refresh_presets()
+            dlg.open = False
+            self.page.update()
+
+        dlg = ft.AlertDialog(
+            title=ft.Text(t("title_edit_preset") if is_edit else t("title_add_preset")),
+            content=ft.Container(
+                content=ft.Column(content_controls, scroll=ft.ScrollMode.AUTO),
+                width=600,
+                height=500
+            ),
+            actions=[
+                ft.TextButton(t("btn_save"), on_click=save_preset),
+                ft.TextButton(t("btn_close"), on_click=lambda e: setattr(dlg, "open", False) or self.page.update())
+            ]
+        )
+        self.page.overlay.append(dlg)
+        dlg.open = True
+        self.page.update()
+
+    def delete_preset(self, type, index):
+        if 0 <= index < len(self.config_manager.presets[type]):
+            self.config_manager.presets[type].pop(index)
+            self.config_manager.save_presets()
+            self.refresh_presets()
