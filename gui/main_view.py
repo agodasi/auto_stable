@@ -10,8 +10,10 @@ class MainView:
         
         self.last_generated_prompt = self.config_manager.queue_state.get("last_finished_prompt", "")
         self.queue_cards = []
+        self.items_done_in_session = 0
         
         # UI Components
+        self.queue_pos_text = ft.Text("", size=14, color="grey500", weight=ft.FontWeight.W_500)
         self.preview_image = ft.Image(
             src="", 
             fit=ft.ImageFit.CONTAIN if hasattr(ft, 'ImageFit') else "contain", 
@@ -148,6 +150,7 @@ class MainView:
 
         self.btn_generate.text = t("btn_cancel")
         self.btn_generate.bgcolor = "red700"
+        self.items_done_in_session = 0
         
         # 1. Lock first queue item if exists
         if self.queue_cards:
@@ -182,6 +185,12 @@ class MainView:
             self.status_text.value = f"{t('status_generating')} ({index}/{total})"
         else:
             self.status_text.value = t("status_generating")
+        
+        # Update Progress Display: [Item X/Y] (Index-1) / BatchTotal
+        q_current = self.items_done_in_session + 1
+        q_total = self.items_done_in_session + len(self.queue_cards)
+        self.queue_pos_text.value = f"[{q_current}/{q_total}] {index-1} / {total}"
+
         self.progress_bar.visible = True
         self.progress_bar.value = 0
         
@@ -197,7 +206,7 @@ class MainView:
         self.status_text.value = t("status_generating_pct", pct=int(progress*100))
         self.page.update()
 
-    async def on_gen_finish(self, image, filepath, is_last=True):
+    async def on_gen_finish(self, image, filepath, is_last=True, index=1, total=1):
         import base64
         import io
         
@@ -209,14 +218,17 @@ class MainView:
         self.preview_image.visible = True
         self.preview_placeholder.visible = False
         
-        # In Flet async mode, we wait a bit or just get the updated state
-        self.last_generated_prompt = self.config_manager.queue_state.get("last_finished_prompt", "")
-        
+        # Update Progress Display: [Item X/Y] Index / BatchTotal
+        q_current = self.items_done_in_session + 1
+        q_total = self.items_done_in_session + len(self.queue_cards)
+        self.queue_pos_text.value = f"[{q_current}/{q_total}] {index} / {total}"
+
         if is_last and self.queue_list.controls:
             first_card = self.queue_list.controls[0]
             self.queue_list.controls.remove(first_card)
             if self.queue_cards:
                 self.queue_cards.pop(0)
+                self.items_done_in_session += 1
                 
         self.page.update()
 
@@ -232,6 +244,7 @@ class MainView:
         self.btn_generate.bgcolor = "green700"
         self.status_text.value = t("lbl_status_idle")
         self.progress_bar.visible = False
+        self.queue_pos_text.value = ""
         
         # Unlock and Reset colors if items are remaining
         for card in self.queue_cards:
@@ -319,6 +332,8 @@ class MainView:
                 ft.Row([
                     ft.Text(t("lbl_batch_count"), size=14),
                     self.batch_count_tf,
+                    ft.Container(width=10),
+                    self.queue_pos_text,
                 ], alignment=ft.MainAxisAlignment.START, spacing=10),
                 ft.Divider(height=1, thickness=1, color="grey700"),
                 ft.Row([

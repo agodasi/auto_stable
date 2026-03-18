@@ -10,8 +10,18 @@ class SettingsView:
         self.conf = self.config_manager.config
         
         # Presets UI
-        self.situation_list = ft.Column(spacing=5, scroll=ft.ScrollMode.AUTO)
-        self.character_list = ft.Column(spacing=5, scroll=ft.ScrollMode.AUTO)
+        self.situation_list = ft.ReorderableListView(
+            spacing=5, 
+            on_reorder=lambda e: self.on_reorder_presets("situations", e),
+            show_default_drag_handles=False,
+            expand=True
+        )
+        self.character_list = ft.ReorderableListView(
+            spacing=5, 
+            on_reorder=lambda e: self.on_reorder_presets("characters", e),
+            show_default_drag_handles=False,
+            expand=True
+        )
         
         # Build UI Components
         self.api_url_tf = ft.TextField(label=t("lbl_api_url"), value=self.conf.get("api_url", "http://127.0.0.1:7860"), expand=True)
@@ -231,12 +241,14 @@ class SettingsView:
             self.page.update()
 
     def refresh_presets(self):
+        sits = self.config_manager.presets.get("situations", [])
         self.situation_list.controls = []
-        for i, p in enumerate(self.config_manager.presets.get("situations", [])):
+        for i, p in enumerate(sits):
             self.situation_list.controls.append(self.build_preset_item("situations", i, p["name"]))
             
+        chars = self.config_manager.presets.get("characters", [])
         self.character_list.controls = []
-        for i, p in enumerate(self.config_manager.presets.get("characters", [])):
+        for i, p in enumerate(chars):
             self.character_list.controls.append(self.build_preset_item("characters", i, p["name"]))
         
         if hasattr(self, 'page') and self.page:
@@ -244,8 +256,15 @@ class SettingsView:
 
     def build_preset_item(self, type, index, name):
         return ft.Container(
+            key=f"{type}_{name}_{index}", # Important for ReorderableListView
             content=ft.Row([
-                ft.Text(name, expand=True),
+                ft.Row([
+                    ft.ReorderableDragHandle(
+                        content=ft.Icon(ft.Icons.DRAG_HANDLE, color="grey400", size=20),
+                        mouse_cursor=ft.MouseCursor.GRAB if hasattr(ft, "MouseCursor") else None
+                    ),
+                    ft.Text(name, expand=False),
+                ], spacing=10, expand=True),
                 ft.Row([
                     ft.IconButton(icon=ft.Icons.EDIT, on_click=lambda e: self.show_preset_dialog(type, index), icon_size=16),
                     ft.IconButton(icon=ft.Icons.DELETE, on_click=lambda e: self.delete_preset(type, index), icon_size=16)
@@ -254,6 +273,19 @@ class SettingsView:
             padding=ft.padding.symmetric(horizontal=5),
             border=ft.border.only(bottom=ft.border.BorderSide(1, "grey700"))
         )
+
+    def on_reorder_presets(self, type, e):
+        presets = self.config_manager.presets.get(type, [])
+        if 0 <= e.old_index < len(presets) and 0 <= e.new_index <= len(presets):
+            item = presets.pop(e.old_index)
+            # Adjust new_index if moving down (Flet specific behavior check)
+            # In some versions new_index is the target position after removal
+            idx = e.new_index
+            if idx > e.old_index:
+                idx -= 1
+            presets.insert(idx, item)
+            self.config_manager.save_presets()
+            self.refresh_presets()
 
     def show_preset_dialog(self, type, index=None):
         is_edit = (index is not None)

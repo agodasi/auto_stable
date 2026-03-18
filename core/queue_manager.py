@@ -109,9 +109,9 @@ class QueueManager:
                                 is_last = (i == batch_count - 1) and (j == len(images_b64) - 1)
                                 import inspect
                                 if inspect.iscoroutinefunction(self.ui_callbacks["on_finish"]):
-                                    await self.ui_callbacks["on_finish"](image, filepath, is_last)
+                                    await self.ui_callbacks["on_finish"](image, filepath, is_last, i + 1, batch_count)
                                 else:
-                                    self.ui_callbacks["on_finish"](image, filepath, is_last)
+                                    self.ui_callbacks["on_finish"](image, filepath, is_last, i + 1, batch_count)
                         
                     except Exception as e:
                         monitor_task.cancel()

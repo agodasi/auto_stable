@@ -92,6 +92,7 @@ TRANSLATIONS = {
         "title_save_freeu_preset": "Save FreeU Preset",
         "lbl_preset_name": "Preset Name",
         "btn_delete": "Delete",
+        "lbl_queue_progress": "Progress: {current} / {total}",
     },
     "ja": {
         "title_main": "SD Forge Queue Manager",
@@ -186,6 +187,7 @@ TRANSLATIONS = {
         "title_save_freeu_preset": "FreeU プリセットを保存",
         "lbl_preset_name": "プリセット名",
         "btn_delete": "削除",
+        "lbl_queue_progress": "進捗: {current} / {total}",
     },
     "zh": {
         "title_main": "SD Forge Queue Manager",
@@ -279,6 +281,7 @@ TRANSLATIONS = {
         "title_save_freeu_preset": "保存 FreeU 预设",
         "lbl_preset_name": "预设名称",
         "btn_delete": "删除",
+        "lbl_queue_progress": "进度: {current} / {total}",
     }
 }
 

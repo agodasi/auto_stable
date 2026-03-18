@@ -61,6 +61,7 @@ venv.bak/
 config.json
 presets.json
 queue_state.json
+freeu_presets.json
 
 # OS generated files
 .DS_Store
