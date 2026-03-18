@@ -112,7 +112,7 @@ class MainView:
             content=ft.Column([header, tf]),
             padding=10,
             border_radius=8,
-            bgcolor="grey800" if self.page.theme_mode == ft.ThemeMode.DARK else "blue100"
+            bgcolor="grey900" if self.page.theme_mode == ft.ThemeMode.DARK else "blue50"
         )
         
         self.queue_cards.append({"id": card_id, "textfield": tf, "container": card_container})
@@ -174,6 +174,11 @@ class MainView:
         self.status_text.value = t("status_generating")
         self.progress_bar.visible = True
         self.progress_bar.value = 0
+        
+        # Color processing item
+        if self.queue_cards:
+            self.queue_cards[0]["container"].bgcolor = "grey800" if self.page.theme_mode == ft.ThemeMode.DARK else "blue100"
+            
         self.page.update()
 
     async def on_gen_progress(self, info):
@@ -218,9 +223,10 @@ class MainView:
         self.status_text.value = t("lbl_status_idle")
         self.progress_bar.visible = False
         
-        # Unlock or items are already removed, but just in case:
+        # Unlock and Reset colors if items are remaining
         for card in self.queue_cards:
             card["textfield"].read_only = False
+            card["container"].bgcolor = "grey900" if self.page.theme_mode == ft.ThemeMode.DARK else "blue50"
             
         self.page.update()
 
