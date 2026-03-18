@@ -1,0 +1,28 @@
+{
+    "presets": [
+        {
+            "name": "test",
+            "params": {
+                "b1": 1.01,
+                "b2": 1.02,
+                "s1": 0.99,
+                "s2": 0.95,
+                "freeu_start": 0.0,
+                "freeu_end": 1.0,
+                "freeu_enable": true
+            }
+        },
+        {
+            "name": "test2",
+            "params": {
+                "b1": 1.01,
+                "b2": 1.02,
+                "s1": 0.99,
+                "s2": 0.2,
+                "freeu_start": 0.0,
+                "freeu_end": 1.0,
+                "freeu_enable": true
+            }
+        }
+    ]
+}

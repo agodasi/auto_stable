@@ -12,7 +12,12 @@ class MainView:
         self.queue_cards = []
         
         # UI Components
-        self.preview_image = ft.Image(src="", fit=ft.ImageFit.CONTAIN if hasattr(ft, 'ImageFit') else "contain", expand=True, visible=False)
+        self.preview_image = ft.Image(
+            src="", 
+            fit=ft.ImageFit.CONTAIN if hasattr(ft, 'ImageFit') else "contain", 
+            expand=True, 
+            visible=False
+        )
         self.preview_placeholder = ft.Container(
             content=ft.Text(t("lbl_image_preview"), color="grey500"),
             alignment=ft.Alignment(0, 0),
@@ -74,6 +79,8 @@ class MainView:
             min_lines=2,
             max_lines=4,
             expand=True,
+            text_size=12,
+            content_padding=ft.padding.all(8),
             on_blur=lambda e: self.save_current_queue_state()
         )
         
@@ -170,8 +177,11 @@ class MainView:
             await self.queue_manager.cancel()
 
     # Callbacks
-    async def on_gen_start(self, item):
-        self.status_text.value = t("status_generating")
+    async def on_gen_start(self, item, index=1, total=1):
+        if total > 1:
+            self.status_text.value = f"{t('status_generating')} ({index}/{total})"
+        else:
+            self.status_text.value = t("status_generating")
         self.progress_bar.visible = True
         self.progress_bar.value = 0
         
@@ -187,7 +197,7 @@ class MainView:
         self.status_text.value = t("status_generating_pct", pct=int(progress*100))
         self.page.update()
 
-    async def on_gen_finish(self, image, filepath):
+    async def on_gen_finish(self, image, filepath, is_last=True):
         import base64
         import io
         
@@ -202,7 +212,7 @@ class MainView:
         # In Flet async mode, we wait a bit or just get the updated state
         self.last_generated_prompt = self.config_manager.queue_state.get("last_finished_prompt", "")
         
-        if self.queue_list.controls:
+        if is_last and self.queue_list.controls:
             first_card = self.queue_list.controls[0]
             self.queue_list.controls.remove(first_card)
             if self.queue_cards:
@@ -268,6 +278,41 @@ class MainView:
         self.freeu_start_tf = self.freeu_controls["start"].controls[1]
         self.freeu_end_tf = self.freeu_controls["end"].controls[1]
 
+        # FreeU preset list
+        self.freeu_preset_column = ft.Column([], spacing=4, scroll=ft.ScrollMode.AUTO)
+        self._refresh_freeu_preset_list()
+
+        freeu_params_panel = ft.Column([
+            self.freeu_enable_cb,
+            ft.Column([
+                ft.Row([self.freeu_controls["b1"], self.freeu_controls["b2"]], spacing=20),
+                ft.Row([self.freeu_controls["s1"], self.freeu_controls["s2"]], spacing=20),
+                ft.Row([self.freeu_controls["start"], self.freeu_controls["end"]], spacing=20),
+            ], spacing=5)
+        ], spacing=5)
+
+        freeu_preset_panel = ft.Container(
+            content=ft.Column([
+                ft.Text(t("lbl_freeu_presets"), size=14, weight=ft.FontWeight.BOLD),
+                ft.ElevatedButton(
+                    t("btn_save_freeu_preset"),
+                    icon=ft.Icons.SAVE,
+                    on_click=self.save_freeu_preset_dialog,
+                    height=32,
+                    expand=True,
+                ),
+                ft.Container(
+                    content=self.freeu_preset_column,
+                    height=110,
+                    border=ft.border.all(1, "grey600"),
+                    border_radius=6,
+                    padding=4,
+                    expand=True,
+                )
+            ], spacing=6, expand=True),
+            expand=True,
+        )
+
         global_settings = ft.Container(
             content=ft.Column([
                 ft.Text(t("lbl_global_settings"), weight=ft.FontWeight.BOLD, size=16),
@@ -276,12 +321,11 @@ class MainView:
                     self.batch_count_tf,
                 ], alignment=ft.MainAxisAlignment.START, spacing=10),
                 ft.Divider(height=1, thickness=1, color="grey700"),
-                self.freeu_enable_cb,
-                ft.Column([
-                    ft.Row([self.freeu_controls["b1"], self.freeu_controls["b2"]], spacing=20),
-                    ft.Row([self.freeu_controls["s1"], self.freeu_controls["s2"]], spacing=20),
-                    ft.Row([self.freeu_controls["start"], self.freeu_controls["end"]], spacing=20),
-                ], spacing=5)
+                ft.Row([
+                    freeu_params_panel,
+                    ft.VerticalDivider(width=1, color="grey700"),
+                    freeu_preset_panel,
+                ], spacing=12, vertical_alignment=ft.CrossAxisAlignment.START, expand=True),
             ], spacing=10),
             padding=15,
             border_radius=10
@@ -308,7 +352,12 @@ class MainView:
                 ft.Container(
                     content=ft.Stack([
                         self.preview_placeholder,
-                        self.preview_image
+                        ft.Container(
+                            content=self.preview_image,
+                            on_click=self.show_full_image,
+                            ink=True,
+                            expand=True,
+                        )
                     ], expand=True),
                     height=250, # Smaller preview height
                     padding=5
@@ -329,6 +378,119 @@ class MainView:
         )
         
         self.main_layout = ft.Row([left_panel, right_panel], expand=True)
+
+    # ---- FreeU preset methods ----
+    def _refresh_freeu_preset_list(self):
+        """プリセットリストのUIを最新状態で再構築する。"""
+        self.freeu_preset_column.controls.clear()
+        presets = self.config_manager.freeu_presets.get("presets", [])
+        for i, p in enumerate(presets):
+            idx = i  # closure capture
+            row = ft.Row([
+                ft.TextButton(
+                    p["name"],
+                    on_click=lambda e, idx=idx: self._load_freeu_preset(idx),
+                    style=ft.ButtonStyle(padding=ft.padding.symmetric(horizontal=4)),
+                ),
+                ft.IconButton(
+                    icon=ft.Icons.DELETE_OUTLINE,
+                    icon_size=16,
+                    icon_color="red400",
+                    tooltip=t("btn_delete"),
+                    on_click=lambda e, idx=idx: self._delete_freeu_preset(idx),
+                )
+            ], spacing=0, alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
+            self.freeu_preset_column.controls.append(row)
+
+    def save_freeu_preset_dialog(self, e):
+        """プリセット名を入力して保存するダイアログを表示する。"""
+        name_tf = ft.TextField(label=t("lbl_preset_name"), autofocus=True, width=240)
+
+        def do_save(e):
+            name = name_tf.value.strip()
+            if not name:
+                return
+            params = {
+                "b1": self._float_or(self.freeu_b1_tf.value, 1.01),
+                "b2": self._float_or(self.freeu_b2_tf.value, 1.02),
+                "s1": self._float_or(self.freeu_s1_tf.value, 0.99),
+                "s2": self._float_or(self.freeu_s2_tf.value, 0.95),
+                "freeu_start": self._float_or(self.freeu_start_tf.value, 0.0),
+                "freeu_end": self._float_or(self.freeu_end_tf.value, 1.0),
+                "freeu_enable": self.freeu_enable_cb.value,
+            }
+            self.config_manager.add_freeu_preset(name, params)
+            self._refresh_freeu_preset_list()
+            dlg.open = False
+            self.page.update()
+
+        dlg = ft.AlertDialog(
+            title=ft.Text(t("title_save_freeu_preset")),
+            content=name_tf,
+            actions=[
+                ft.TextButton(t("btn_save"), on_click=do_save),
+                ft.TextButton(t("btn_close"), on_click=lambda e: setattr(dlg, "open", False) or self.page.update()),
+            ]
+        )
+        self.page.overlay.append(dlg)
+        dlg.open = True
+        self.page.update()
+
+    def _load_freeu_preset(self, index):
+        """プリセットをFreeUコントロールに反映する。"""
+        presets = self.config_manager.freeu_presets.get("presets", [])
+        if index >= len(presets):
+            return
+        params = presets[index]["params"]
+        self.freeu_b1_tf.value = str(params.get("b1", 1.01))
+        self.freeu_b2_tf.value = str(params.get("b2", 1.02))
+        self.freeu_s1_tf.value = str(params.get("s1", 0.99))
+        self.freeu_s2_tf.value = str(params.get("s2", 0.95))
+        self.freeu_start_tf.value = str(params.get("freeu_start", 0.0))
+        self.freeu_end_tf.value = str(params.get("freeu_end", 1.0))
+        self.freeu_enable_cb.value = params.get("freeu_enable", False)
+        self.page.update()
+
+    def _delete_freeu_preset(self, index):
+        """確認なしでプリセットを削除する。"""
+        self.config_manager.delete_freeu_preset(index)
+        self._refresh_freeu_preset_list()
+        self.page.update()
+
+    @staticmethod
+    def _float_or(val, default):
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            return default
+
+    def show_full_image(self, e):
+        """画像を拡大してダイアログで表示する。"""
+        if not self.preview_image.src:
+            return
+            
+        full_img = ft.Image(
+            src=self.preview_image.src,
+            fit=ft.ImageFit.CONTAIN if hasattr(ft, "ImageFit") else "contain",
+        )
+        
+        dlg = ft.AlertDialog(
+            content=ft.Container(
+                content=full_img,
+                padding=10,
+                width=800,
+                height=800,
+            ),
+            actions=[
+                ft.TextButton(t("btn_close"), on_click=lambda e: setattr(dlg, "open", False) or self.page.update()),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+        self.page.overlay.append(dlg)
+        dlg.open = True
+        self.page.update()
+
+    # ---- end FreeU preset methods ----
 
     def open_settings(self, e):
         from gui.settings_view import SettingsView

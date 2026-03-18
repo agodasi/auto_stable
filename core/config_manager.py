@@ -7,10 +7,12 @@ class ConfigManager:
         self.config_file = os.path.join(self.config_dir, "config.json")
         self.presets_file = os.path.join(self.config_dir, "presets.json")
         self.queue_state_file = os.path.join(self.config_dir, "queue_state.json")
+        self.freeu_presets_file = os.path.join(self.config_dir, "freeu_presets.json")
         
         self.config = self.load_config()
         self.presets = self.load_presets()
         self.queue_state = self.load_queue_state()
+        self.freeu_presets = self.load_freeu_presets()
         
         # Initialize language
         from core.i18n import set_language
@@ -90,6 +92,28 @@ class ConfigManager:
         
     def save_queue_state(self):
         self.save_json(self.queue_state_file, self.queue_state)
+
+    def load_freeu_presets(self):
+        default = {"presets": []}
+        loaded = self.load_json(self.freeu_presets_file, default)
+        if "presets" not in loaded:
+            loaded["presets"] = []
+        return loaded
+
+    def save_freeu_presets(self):
+        self.save_json(self.freeu_presets_file, self.freeu_presets)
+
+    def add_freeu_preset(self, name, params):
+        """FreeUプリセットを追加して保存する。"""
+        self.freeu_presets["presets"].append({"name": name, "params": params})
+        self.save_freeu_presets()
+
+    def delete_freeu_preset(self, index):
+        """指定インデックスのFreeUプリセットを削除して保存する。"""
+        presets = self.freeu_presets["presets"]
+        if 0 <= index < len(presets):
+            presets.pop(index)
+            self.save_freeu_presets()
         
     def add_preset(self, type, data):
         """Adds a new preset and saves it."""

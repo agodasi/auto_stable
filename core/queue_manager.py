@@ -28,7 +28,7 @@ class QueueManager:
             "height": int(base_params.get("height", 512)),
             "seed": -1,
             "batch_size": 1,
-            "n_iter": int(global_params.get("batch_count", 1)),
+            "n_iter": 1,
             "send_images": True,
             "save_images": False,
         }
@@ -58,76 +58,83 @@ class QueueManager:
         
         try:
             save_dir = self.check_save_directory()
-        except Exception as e:
-            if "on_error" in self.ui_callbacks:
-                import inspect
-                if inspect.iscoroutinefunction(self.ui_callbacks["on_error"]):
-                    await self.ui_callbacks["on_error"](str(e))
-                else:
-                    self.ui_callbacks["on_error"](str(e))
-            self.is_running = False
-            return
-
-        queue = self.config_manager.queue_state.get("queue", [])
-        
-        while queue and not self._cancel_requested:
-            current_item = queue[0]
-            prompt = current_item.get("prompt", "")
+            queue = self.config_manager.queue_state.get("queue", [])
             
-            if "on_start" in self.ui_callbacks:
-                import inspect
-                if inspect.iscoroutinefunction(self.ui_callbacks["on_start"]):
-                    await self.ui_callbacks["on_start"](current_item)
-                else:
-                    self.ui_callbacks["on_start"](current_item)
-
-            base_params = self.config_manager.config.get("base_params", {})
-            global_params = self.config_manager.config.get("global_params", {})
-            payload = self.build_payload(prompt, base_params, global_params)
-
-            gen_task = asyncio.create_task(self.api_client.generate_image(payload))
-            monitor_task = asyncio.create_task(self._monitor_progress())
-
-            try:
-                images_b64 = await gen_task
-                monitor_task.cancel()
+            while queue and not self._cancel_requested:
+                current_item = queue[0]
+                prompt = current_item.get("prompt", "")
                 
-                self.config_manager.queue_state["last_finished_prompt"] = prompt
-                self.config_manager.save_queue_state()
-                
-                for i, img_b64 in enumerate(images_b64):
-                    image = self.api_client.decode_base64_image(img_b64)
-                    
-                    # Create date-based subfolder
-                    date_folder = datetime.now().strftime("%Y-%m-%d")
-                    target_dir = os.path.join(save_dir, date_folder)
-                    os.makedirs(target_dir, exist_ok=True)
-                    
-                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    savename = f"{timestamp}_{i:02d}.png"
-                    filepath = os.path.join(target_dir, savename)
-                    image.save(filepath, "PNG")
-                    
-                    if "on_finish" in self.ui_callbacks:
-                        # Call as async or thread-safe if callback is async
+                base_params = self.config_manager.config.get("base_params", {})
+                global_params = self.config_manager.config.get("global_params", {})
+                batch_count = int(global_params.get("batch_count", 1))
+
+                for i in range(batch_count):
+                    if self._cancel_requested:
+                        break
+                        
+                    if "on_start" in self.ui_callbacks:
                         import inspect
-                        if inspect.iscoroutinefunction(self.ui_callbacks["on_finish"]):
-                            await self.ui_callbacks["on_finish"](image, filepath)
+                        if inspect.iscoroutinefunction(self.ui_callbacks["on_start"]):
+                            await self.ui_callbacks["on_start"](current_item, i + 1, batch_count)
                         else:
-                            self.ui_callbacks["on_finish"](image, filepath)
+                            self.ui_callbacks["on_start"](current_item, i + 1, batch_count)
+
+                    payload = self.build_payload(prompt, base_params, global_params)
+
+                    gen_task = asyncio.create_task(self.api_client.generate_image(payload))
+                    monitor_task = asyncio.create_task(self._monitor_progress())
+
+                    try:
+                        images_b64 = await gen_task
+                        monitor_task.cancel()
+                        
+                        self.config_manager.queue_state["last_finished_prompt"] = prompt
+                        self.config_manager.save_queue_state()
+                        
+                        for j, img_b64 in enumerate(images_b64):
+                            image = self.api_client.decode_base64_image(img_b64)
+                            
+                            # Create date-based subfolder
+                            date_folder = datetime.now().strftime("%Y-%m-%d")
+                            target_dir = os.path.join(save_dir, date_folder)
+                            os.makedirs(target_dir, exist_ok=True)
+                            
+                            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                            savename = f"{timestamp}_{i:02d}_{j:02d}.png"
+                            filepath = os.path.join(target_dir, savename)
+                            image.save(filepath, "PNG")
+                            
+                            if "on_finish" in self.ui_callbacks:
+                                # 最後のバッチの最後の画像かどうか
+                                is_last = (i == batch_count - 1) and (j == len(images_b64) - 1)
+                                import inspect
+                                if inspect.iscoroutinefunction(self.ui_callbacks["on_finish"]):
+                                    await self.ui_callbacks["on_finish"](image, filepath, is_last)
+                                else:
+                                    self.ui_callbacks["on_finish"](image, filepath, is_last)
+                        
+                    except Exception as e:
+                        monitor_task.cancel()
+                        if not self._cancel_requested:
+                            if "on_error" in self.ui_callbacks:
+                                import inspect
+                                if inspect.iscoroutinefunction(self.ui_callbacks["on_error"]):
+                                    await self.ui_callbacks["on_error"](str(e))
+                                else:
+                                    self.ui_callbacks["on_error"](str(e))
+                        break
                 
-                queue.pop(0)
-                
-            except Exception as e:
-                monitor_task.cancel()
                 if not self._cancel_requested:
-                    if "on_error" in self.ui_callbacks:
-                        import inspect
-                        if inspect.iscoroutinefunction(self.ui_callbacks["on_error"]):
-                            await self.ui_callbacks["on_error"](str(e))
-                        else:
-                            self.ui_callbacks["on_error"](str(e))
-                break
+                    queue.pop(0)
+
+        except Exception as e:
+            if not self._cancel_requested:
+                if "on_error" in self.ui_callbacks:
+                    import inspect
+                    if inspect.iscoroutinefunction(self.ui_callbacks["on_error"]):
+                        await self.ui_callbacks["on_error"](str(e))
+                    else:
+                        self.ui_callbacks["on_error"](str(e))
 
         self.is_running = False
         if "on_queue_empty" in self.ui_callbacks:

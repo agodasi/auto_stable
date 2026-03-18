@@ -85,7 +85,13 @@ TRANSLATIONS = {
         "btn_skip": "Skip",
         
         "default_sit_name": "Sample Situation",
-        "default_char_name": "Sample Character"
+        "default_char_name": "Sample Character",
+
+        "lbl_freeu_presets": "FreeU Presets (Presets Management)",
+        "btn_save_freeu_preset": "Save Current as Preset",
+        "title_save_freeu_preset": "Save FreeU Preset",
+        "lbl_preset_name": "Preset Name",
+        "btn_delete": "Delete",
     },
     "ja": {
         "title_main": "SD Forge Queue Manager",
@@ -173,7 +179,13 @@ TRANSLATIONS = {
         "btn_skip": "スキップ",
         
         "default_sit_name": "サンプルシチュエーション",
-        "default_char_name": "サンプルキャラクター"
+        "default_char_name": "サンプルキャラクター",
+
+        "lbl_freeu_presets": "FreeU プリセット (FreeU Presets)",
+        "btn_save_freeu_preset": "現在の設定をプリセット保存",
+        "title_save_freeu_preset": "FreeU プリセットを保存",
+        "lbl_preset_name": "プリセット名",
+        "btn_delete": "削除",
     },
     "zh": {
         "title_main": "SD Forge Queue Manager",
@@ -260,7 +272,13 @@ TRANSLATIONS = {
         "btn_skip": "跳过",
         
         "default_sit_name": "示例场景",
-        "default_char_name": "示例角色"
+        "default_char_name": "示例角色",
+
+        "lbl_freeu_presets": "FreeU 预设 (FreeU Presets)",
+        "btn_save_freeu_preset": "将当前设置保存为预设",
+        "title_save_freeu_preset": "保存 FreeU 预设",
+        "lbl_preset_name": "预设名称",
+        "btn_delete": "删除",
     }
 }
 
