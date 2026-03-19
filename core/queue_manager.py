@@ -37,19 +37,35 @@ class QueueManager:
         if checkpoint:
             payload["override_settings"] = {"sd_model_checkpoint": checkpoint}
 
+        payload["alwayson_scripts"] = {}
         if global_params.get("freeu_enable", False):
-            payload["alwayson_scripts"] = {
-                "freeu integrated (sd 1.x, sd 2.x, sdxl)": {
-                    "args": [
-                        float(global_params.get("freeu_b1", 1.01)),
-                        float(global_params.get("freeu_b2", 1.02)),
-                        float(global_params.get("freeu_s1", 0.99)),
-                        float(global_params.get("freeu_s2", 0.95)),
-                        float(global_params.get("freeu_start", 0)),
-                        float(global_params.get("freeu_end", 1))
-                    ]
-                }
+            payload["alwayson_scripts"]["freeu integrated (sd 1.x, sd 2.x, sdxl)"] = {
+                "args": [
+                    float(global_params.get("freeu_b1", 1.01)),
+                    float(global_params.get("freeu_b2", 1.02)),
+                    float(global_params.get("freeu_s1", 0.99)),
+                    float(global_params.get("freeu_s2", 0.95)),
+                    float(global_params.get("freeu_start", 0)),
+                    float(global_params.get("freeu_end", 1))
+                ]
             }
+
+        if global_params.get("adetailer_enable", False):
+            payload["alwayson_scripts"]["ADetailer"] = {
+                "args": [
+                    {
+                        "ad_model": global_params.get("adetailer_model", "face_yolov8n.pt"),
+                        "ad_prompt": global_params.get("adetailer_prompt", ""),
+                        "ad_negative_prompt": "",
+                        "ad_denoising_strength": float(global_params.get("adetailer_denoising", 0.4)),
+                        "ad_confidence": 0.3
+                    }
+                ]
+            }
+        
+        if not payload["alwayson_scripts"]:
+            del payload["alwayson_scripts"]
+
         return payload
 
     async def run_queue(self):

@@ -255,8 +255,10 @@ class SettingsView:
             self.page.update()
 
     def build_preset_item(self, type, index, name):
+        p = self.config_manager.presets[type][index]
+        ui_id = p.get("_ui_id", f"{type}_{name}_{index}")
         return ft.Container(
-            key=f"{type}_{name}_{index}", # Important for ReorderableListView
+            key=ui_id, # Stable unique key
             content=ft.Row([
                 ft.Row([
                     ft.ReorderableDragHandle(
@@ -278,12 +280,7 @@ class SettingsView:
         presets = self.config_manager.presets.get(type, [])
         if 0 <= e.old_index < len(presets) and 0 <= e.new_index <= len(presets):
             item = presets.pop(e.old_index)
-            # Adjust new_index if moving down (Flet specific behavior check)
-            # In some versions new_index is the target position after removal
-            idx = e.new_index
-            if idx > e.old_index:
-                idx -= 1
-            presets.insert(idx, item)
+            presets.insert(e.new_index, item)
             self.config_manager.save_presets()
             self.refresh_presets()
 

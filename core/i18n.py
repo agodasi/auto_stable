@@ -93,6 +93,11 @@ TRANSLATIONS = {
         "lbl_preset_name": "Preset Name",
         "btn_delete": "Delete",
         "lbl_queue_progress": "Progress: {current} / {total}",
+        "lbl_adetailer": "ADetailer",
+        "lbl_ad_enable": "Enable ADetailer",
+        "lbl_ad_model": "AD Model",
+        "lbl_ad_denoising": "AD Denoising",
+        "lbl_ad_prompt": "AD Prompt",
     },
     "ja": {
         "title_main": "SD Forge Queue Manager",
@@ -188,6 +193,11 @@ TRANSLATIONS = {
         "lbl_preset_name": "プリセット名",
         "btn_delete": "削除",
         "lbl_queue_progress": "進捗: {current} / {total}",
+        "lbl_adetailer": "ADetailer設定",
+        "lbl_ad_enable": "ADetailer有効化",
+        "lbl_ad_model": "検出モデル",
+        "lbl_ad_denoising": "除去強度",
+        "lbl_ad_prompt": "ADプロンプト",
     },
     "zh": {
         "title_main": "SD Forge Queue Manager",
@@ -282,6 +292,11 @@ TRANSLATIONS = {
         "lbl_preset_name": "预设名称",
         "btn_delete": "删除",
         "lbl_queue_progress": "进度: {current} / {total}",
+        "lbl_adetailer": "ADetailer 设置",
+        "lbl_ad_enable": "启用 ADetailer",
+        "lbl_ad_model": "检测模型",
+        "lbl_ad_denoising": "重绘强度",
+        "lbl_ad_prompt": "AD 提示词",
     }
 }
 

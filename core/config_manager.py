@@ -1,5 +1,6 @@
 import json
 import os
+import uuid
 
 class ConfigManager:
     def __init__(self, config_dir="."):
@@ -56,7 +57,11 @@ class ConfigManager:
                 "freeu_s1": 0.99,
                 "freeu_s2": 0.95,
                 "freeu_start": 0,
-                "freeu_end": 1
+                "freeu_end": 1,
+                "adetailer_enable": False,
+                "adetailer_model": "face_yolov8n.pt",
+                "adetailer_denoising": 0.4,
+                "adetailer_prompt": ""
             }
         }
         loaded = self.load_json(self.config_file, default_config)
@@ -77,6 +82,12 @@ class ConfigManager:
         loaded = self.load_json(self.presets_file, default_presets)
         if "situations" not in loaded: loaded["situations"] = default_presets["situations"]
         if "characters" not in loaded: loaded["characters"] = default_presets["characters"]
+        
+        # Add UI IDs for stable keys in ReorderableListView
+        for key in ["situations", "characters"]:
+            for item in loaded.get(key, []):
+                if "_ui_id" not in item:
+                    item["_ui_id"] = str(uuid.uuid4())
         return loaded
         
     def save_presets(self):
@@ -118,5 +129,7 @@ class ConfigManager:
     def add_preset(self, type, data):
         """Adds a new preset and saves it."""
         if type in self.presets:
+            if "_ui_id" not in data:
+                data["_ui_id"] = str(uuid.uuid4())
             self.presets[type].append(data)
             self.save_presets()

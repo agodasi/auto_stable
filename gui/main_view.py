@@ -291,6 +291,69 @@ class MainView:
         self.freeu_start_tf = self.freeu_controls["start"].controls[1]
         self.freeu_end_tf = self.freeu_controls["end"].controls[1]
 
+        # ADetailer Controls
+        self.adetailer_enable_cb = ft.Checkbox(label=t("lbl_ad_enable"), value=gp.get("adetailer_enable", False))
+        self.adetailer_model_dd = ft.Dropdown(
+            label=t("lbl_ad_model"),
+            value=gp.get("adetailer_model", "face_yolov8n.pt"),
+            options=[
+                ft.dropdown.Option("face_yolov8n.pt"),
+                ft.dropdown.Option("hand_yolov8n.pt"),
+                ft.dropdown.Option("person_yolov8n.pt"),
+                ft.dropdown.Option("mediapipe_face_full"),
+            ],
+            width=200,
+            text_size=12,
+            height=45,
+        )
+        self.adetailer_prompt_tf = ft.TextField(
+            label=t("lbl_ad_prompt"),
+            value=gp.get("adetailer_prompt", ""),
+            multiline=True,
+            min_lines=2,
+            max_lines=3,
+            text_size=12,
+        )
+        self.adetailer_denoising_tf = ft.TextField(
+            value=str(gp.get("adetailer_denoising", 0.4)),
+            width=60,
+            height=30,
+            content_padding=5,
+            text_size=12,
+            text_align=ft.TextAlign.RIGHT
+        )
+
+        def adjust_denoising(delta):
+            try:
+                val = float(self.adetailer_denoising_tf.value)
+                new_val = round(max(0.0, min(1.0, val + delta)), 2)
+                self.adetailer_denoising_tf.value = str(new_val)
+                self.page.update()
+            except: pass
+
+        adetailer_denoising_row = ft.Row([
+            ft.Text(t("lbl_ad_denoising"), size=13, weight=ft.FontWeight.W_500),
+            ft.Row([
+                ft.IconButton(ft.Icons.REMOVE, icon_size=16, on_click=lambda _: adjust_denoising(-0.05)),
+                self.adetailer_denoising_tf,
+                ft.IconButton(ft.Icons.ADD, icon_size=16, on_click=lambda _: adjust_denoising(0.05)),
+            ], spacing=0)
+        ], spacing=5, alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
+
+        adetailer_panel = ft.Container(
+            content=ft.Column([
+                ft.Text(t("lbl_adetailer"), weight=ft.FontWeight.BOLD, size=14),
+                self.adetailer_enable_cb,
+                self.adetailer_model_dd,
+                adetailer_denoising_row,
+                self.adetailer_prompt_tf,
+            ], spacing=8, tight=True, scroll=ft.ScrollMode.AUTO),
+            width=250,
+            padding=10,
+            bgcolor="grey900" if self.page.theme_mode == ft.ThemeMode.DARK else "blue50",
+            border_radius=8,
+        )
+
         # FreeU preset list
         self.freeu_preset_column = ft.Column([], spacing=4, scroll=ft.ScrollMode.AUTO)
         self._refresh_freeu_preset_list()
@@ -364,19 +427,23 @@ class MainView:
         # Right Panel (Preview & Global Settings)
         right_panel = ft.Container(
             content=ft.Column([
-                ft.Container(
-                    content=ft.Stack([
-                        self.preview_placeholder,
-                        ft.Container(
-                            content=self.preview_image,
-                            on_click=self.show_full_image,
-                            ink=True,
-                            expand=True,
-                        )
-                    ], expand=True),
-                    height=250, # Smaller preview height
-                    padding=5
-                ),
+                ft.Row([
+                    adetailer_panel,
+                    ft.Container(
+                        content=ft.Stack([
+                            self.preview_placeholder,
+                            ft.Container(
+                                content=self.preview_image,
+                                on_click=self.show_full_image,
+                                ink=True,
+                                expand=True,
+                            )
+                        ], expand=True),
+                        height=300,
+                        padding=5,
+                        expand=True,
+                    )
+                ], spacing=10, vertical_alignment=ft.CrossAxisAlignment.START),
                 global_settings,
                 ft.Column([
                     self.progress_bar,
@@ -550,6 +617,14 @@ class MainView:
         except: pass
         try: gp["freeu_end"] = float(self.freeu_end_tf.value)
         except: pass
+        
+        # ADetailer
+        gp["adetailer_enable"] = self.adetailer_enable_cb.value
+        gp["adetailer_model"] = self.adetailer_model_dd.value
+        try: gp["adetailer_denoising"] = float(self.adetailer_denoising_tf.value)
+        except: pass
+        gp["adetailer_prompt"] = self.adetailer_prompt_tf.value
+        
         self.config_manager.save_config()
 
     def build(self):
