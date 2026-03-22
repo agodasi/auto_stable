@@ -120,7 +120,7 @@ TRANSLATIONS = {
         "btn_requeue": "現在のプロンプトを再度キューへ",
         "btn_generate": "▶ 生成開始 (Generate)",
         "lbl_queue_item": "キュー項目",
-        "btn_cancel": "■ キャンセル (Cancel)",
+        "btn_cancel": "■ 中止",
         "btn_del": "削除",
         "status_generating": "状態: 生成中...",
         "status_generating_pct": "状態: 生成中 ({pct}%)",
