@@ -1,0 +1,15 @@
+{
+    "situations": [
+        {
+            "name": "Sample Outdoor",
+            "text_front": "1girl, masterpiece, best quality, outdoors, forest, sunlight",
+            "text_back": ""
+        }
+    ],
+    "characters": [
+        {
+            "name": "Sample Character",
+            "text": "silver hair, blue eyes, smiling, white dress"
+        }
+    ]
+}

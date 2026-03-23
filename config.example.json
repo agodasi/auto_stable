@@ -1,0 +1,28 @@
+{
+    "api_url": "http://127.0.0.1:7860",
+    "save_dir": "./outputs",
+    "theme": "Dark",
+    "language": "ja",
+    "base_params": {
+        "checkpoint": "",
+        "negative_prompt": "",
+        "steps": 20,
+        "cfg_scale": 7.0,
+        "width": 512,
+        "height": 512
+    },
+    "global_params": {
+        "batch_count": 1,
+        "freeu_enable": false,
+        "freeu_b1": 1.01,
+        "freeu_b2": 1.02,
+        "freeu_s1": 0.99,
+        "freeu_s2": 0.95,
+        "freeu_start": 0,
+        "freeu_end": 1,
+        "adetailer_enable": false,
+        "adetailer_model": "face_yolov8n.pt",
+        "adetailer_denoising": 0.4,
+        "adetailer_prompt": ""
+    }
+}
