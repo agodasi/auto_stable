@@ -25,3 +25,7 @@ freeu_presets.json
 .idea/
 .DS_Store
 Thumbs.db
+
+# Scratch / Temp
+Plaintext.md
+test_dlg.py
