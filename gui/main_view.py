@@ -338,9 +338,9 @@ class MainView:
         adetailer_denoising_row = ft.Row([
             ft.Text(t("lbl_ad_denoising"), size=13, weight=ft.FontWeight.W_500),
             ft.Row([
-                ft.IconButton(ft.Icons.REMOVE, icon_size=16, on_click=lambda _: adjust_denoising(-0.05)),
+                ft.IconButton(icon=ft.Icons.REMOVE, icon_size=16, on_click=lambda _: adjust_denoising(-0.05)),
                 self.adetailer_denoising_tf,
-                ft.IconButton(ft.Icons.ADD, icon_size=16, on_click=lambda _: adjust_denoising(0.05)),
+                ft.IconButton(icon=ft.Icons.ADD, icon_size=16, on_click=lambda _: adjust_denoising(0.05)),
             ], spacing=0)
         ], spacing=5, alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
 
