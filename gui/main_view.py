@@ -150,7 +150,6 @@ class MainView:
 
         self.btn_generate.text = t("btn_cancel")
         self.btn_generate.bgcolor = "red700"
-        self.btn_generate.content = None
         self.btn_generate.update()
         self.items_done_in_session = 0
         
@@ -244,7 +243,6 @@ class MainView:
     async def on_gen_complete(self):
         self.btn_generate.text = t("btn_generate")
         self.btn_generate.bgcolor = "green700"
-        self.btn_generate.content = None
         self.btn_generate.update()
         self.status_text.value = t("lbl_status_idle")
         self.progress_bar.visible = False
