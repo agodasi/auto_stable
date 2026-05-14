@@ -148,9 +148,12 @@ class MainView:
             self.page.update()
             return
 
-        self.btn_generate.text = t("btn_cancel")
+        new_text = t("btn_cancel")
+        print(f"DEBUG: Changing button text to: {new_text}", flush=True)
+        self.btn_generate.text = new_text
         self.btn_generate.bgcolor = "red700"
         self.btn_generate.update()
+        self.page.update()
         self.items_done_in_session = 0
         
         # 1. Lock first queue item if exists
@@ -205,6 +208,14 @@ class MainView:
         progress = info.get("progress", 0)
         self.progress_bar.value = progress
         self.status_text.value = t("status_generating_pct", pct=int(progress*100))
+        
+        # Show live preview if available
+        img_b64 = info.get("current_image")
+        if img_b64:
+            self.preview_image.src = img_b64
+            self.preview_image.visible = True
+            self.preview_placeholder.visible = False
+            
         self.page.update()
 
     async def on_gen_finish(self, image, filepath, is_last=True, index=1, total=1):
@@ -234,6 +245,7 @@ class MainView:
         self.page.update()
 
     async def on_gen_error(self, err_msg):
+        print(f"UI Gen Error: {err_msg}")
         dlg = ft.AlertDialog(title=ft.Text(t("msg_error")), content=ft.Text(err_msg))
         self.page.overlay.append(dlg)
         dlg.open = True
@@ -241,9 +253,12 @@ class MainView:
         self.page.update()
 
     async def on_gen_complete(self):
-        self.btn_generate.text = t("btn_generate")
+        new_text = t("btn_generate")
+        print(f"DEBUG: Resetting button text to: {new_text}", flush=True)
+        self.btn_generate.text = new_text
         self.btn_generate.bgcolor = "green700"
         self.btn_generate.update()
+        self.page.update()
         self.status_text.value = t("lbl_status_idle")
         self.progress_bar.visible = False
         self.queue_pos_text.value = ""
@@ -590,8 +605,12 @@ class MainView:
         wv = WizardView(self.page, self.config_manager, self.on_wizard_complete)
         wv.show()
         
-    def on_wizard_complete(self, prompt_text):
-        self.add_queue_card(prompt_text)
+    def on_wizard_complete(self, prompt_texts):
+        if isinstance(prompt_texts, list):
+            for text in prompt_texts:
+                self.add_queue_card(text)
+        else:
+            self.add_queue_card(prompt_texts)
 
     def open_save_preset(self, e):
         from gui.preset_save_view import PresetSaveView

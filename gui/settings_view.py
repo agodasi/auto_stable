@@ -59,6 +59,10 @@ class SettingsView:
         )
         self.steps_tf = ft.TextField(label=t("lbl_steps"), value=str(bp.get("steps", 20)), width=100)
         self.cfg_tf = ft.TextField(label=t("lbl_cfg_scale"), value=str(bp.get("cfg_scale", 7.0)), width=100)
+        sampler_val = bp.get("sampler_name", "Euler a")
+        self.sampler_dd = ft.Dropdown(label=t("lbl_sampler"), options=[ft.dropdown.Option(sampler_val)], value=sampler_val, width=200)
+        scheduler_val = bp.get("scheduler", "Automatic")
+        self.scheduler_dd = ft.Dropdown(label=t("lbl_scheduler"), options=[ft.dropdown.Option(scheduler_val)], value=scheduler_val, width=200)
         self.width_tf = ft.TextField(label=t("lbl_width"), value=str(bp.get("width", 512)), width=100)
         self.height_tf = ft.TextField(label=t("lbl_height"), value=str(bp.get("height", 512)), width=100)
         
@@ -86,12 +90,21 @@ class SettingsView:
             ft.Row([self.lang_dd, self.restart_txt])
         ], scroll=ft.ScrollMode.AUTO, expand=True)
         
+        left_col = ft.Column([
+            ft.Row([self.steps_tf, self.cfg_tf]),
+            ft.Row([self.width_tf, self.height_tf])
+        ])
+        right_col = ft.Column([
+            self.sampler_dd,
+            self.scheduler_dd
+        ], expand=True)
+        bottom_row = ft.Row([left_col, right_col])
+        
         gen_tab = ft.Column([
             ft.Container(height=10), # Spacer
             ft.Row([self.ckpt_dd, self.refresh_btn]),
             self.neg_prompt_tf,
-            ft.Row([self.steps_tf, self.cfg_tf]),
-            ft.Row([self.width_tf, self.height_tf])
+            bottom_row
         ], scroll=ft.ScrollMode.AUTO, expand=True)
         
         self.refresh_presets()
@@ -200,6 +213,8 @@ class SettingsView:
         except: pass
         try: bp["height"] = int(self.height_tf.value)
         except: pass
+        bp["sampler_name"] = self.sampler_dd.value
+        bp["scheduler"] = self.scheduler_dd.value
         
         self.config_manager.save_config()
         
@@ -234,6 +249,29 @@ class SettingsView:
             self.ckpt_dd.options = [ft.dropdown.Option(t) for t in titles]
             if self.ckpt_dd.value not in titles:
                 self.ckpt_dd.value = titles[0]
+                
+            # Fetch samplers
+            try:
+                samplers = await self.api_client.get_samplers()
+                sampler_names = [s.get("name") for s in samplers if "name" in s]
+                if sampler_names:
+                    self.sampler_dd.options = [ft.dropdown.Option(s) for s in sampler_names]
+                    if self.sampler_dd.value not in sampler_names:
+                        self.sampler_dd.value = sampler_names[0]
+            except Exception as ex:
+                print(f"Error fetching samplers: {ex}")
+                
+            # Fetch schedulers
+            try:
+                schedulers = await self.api_client.get_schedulers()
+                scheduler_names = [s.get("name") for s in schedulers if "name" in s]
+                if scheduler_names:
+                    self.scheduler_dd.options = [ft.dropdown.Option(s) for s in scheduler_names]
+                    if self.scheduler_dd.value not in scheduler_names:
+                        self.scheduler_dd.value = scheduler_names[0]
+            except Exception as ex:
+                print(f"Error fetching schedulers: {ex}")
+                
         except Exception as ex:
             print(f"Error fetching models: {ex}")
         finally:

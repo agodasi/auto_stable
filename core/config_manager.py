@@ -44,6 +44,8 @@ class ConfigManager:
             "base_params": {
                 "checkpoint": "",
                 "negative_prompt": "",
+                "sampler_name": "Euler a",
+                "scheduler": "Automatic",
                 "steps": 20,
                 "cfg_scale": 7.0,
                 "width": 512,
